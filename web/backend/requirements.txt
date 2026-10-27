@@ -1,0 +1,29 @@
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+sqlalchemy>=2.0.0
+greenlet>=3.0.0
+aiosqlite>=0.20.0
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.9
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+bcrypt>=4.0.0,<5.0.0
+websockets>=12.0
+
+# V4 core (for V4 bridge)
+PyMuPDF>=1.27.0,<1.28.0
+python-docx>=1.2.0
+pywin32>=300; sys_platform == "win32"
+requests>=2.32.0
+Pillow>=10.0.0
+olefile==0.47
+pandas>=2.3.0
+openpyxl>=3.1.0
+lxml>=5.0.0
+xlrd>=2.0.0
+loguru>=0.7.0
+httpx>=0.28.1
+rapidocr-onnxruntime==1.4.4; python_version < "3.13"
+
+psutil>=6,<8

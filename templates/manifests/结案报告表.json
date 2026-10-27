@@ -1,0 +1,254 @@
+{
+  "template": "结案报告表",
+  "version": 3,
+  "source_doc": "结案报告表.doc",
+  "tables": [
+    {
+      "table_index": 1,
+      "rows": 10,
+      "cells": [
+        {
+          "row": 1,
+          "col": 1,
+          "role": "fixed",
+          "note": "案  件  类  别",
+          "preview": "案  件  类  别"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "role": "fill",
+          "placeholder": "民事",
+          "preview": "【民事】",
+          "offset": {
+            "start": 0,
+            "len": 4
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R1C2",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "role": "fixed",
+          "note": "委 托 人 名 称",
+          "preview": "委 托 人 名 称"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "role": "fill",
+          "placeholder": "委托代理合同中委托人",
+          "preview": "【委托代理合同中委托人】",
+          "offset": {
+            "start": 0,
+            "len": 12
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R2C2",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "role": "fixed",
+          "note": "案件或项目名称",
+          "preview": "案件或项目名称"
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "role": "fill",
+          "placeholder": "判决书内的（原告XXX诉被告XXXAAA一案）",
+          "preview": "【判决书内的（原告XXX诉被告XXXAAA一案）】",
+          "offset": {
+            "start": 0,
+            "len": 25
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R3C2",
+            "max_chars": 150
+          }
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "role": "fixed",
+          "note": "结案小结",
+          "preview": "结案小结"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "role": "fill",
+          "placeholder": "《律师业务卷宗（银行案)》sheet1的I列，根据判决书、执行裁定书的内容，匹配最相近的选项填写",
+          "preview": "【《律师业务卷宗（银行案)》sheet1的I列，根据判决书、执行裁定书的内容，匹配最相近的选项填写】（与审办结果一致）",
+          "offset": {
+            "start": 0,
+            "len": 50
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R4C2",
+            "max_chars": 150
+          }
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "role": "fixed",
+          "note": "委务托质人量对意服见",
+          "preview": "委务托质人量对意服见"
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "role": "fixed",
+          "note": "委托人对承办律师服务质量表示满意。",
+          "preview": "委托人对承办律师服务质量表示满意。"
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "role": "fixed",
+          "note": "应收业务费",
+          "preview": "应收业务费"
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "role": "clear",
+          "placeholder": "留空",
+          "preview": "【留空】",
+          "offset": {
+            "start": 0,
+            "len": 4
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R6C2",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 6,
+          "col": 3,
+          "role": "fixed",
+          "note": "已收业务费",
+          "preview": "已收业务费"
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "role": "clear",
+          "placeholder": "留空",
+          "preview": "【留空】",
+          "offset": {
+            "start": 0,
+            "len": 4
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R6C4",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 7,
+          "col": 1,
+          "role": "fixed",
+          "note": "尚欠业务费",
+          "preview": "尚欠业务费"
+        },
+        {
+          "row": 7,
+          "col": 2,
+          "role": "clear",
+          "placeholder": "留空",
+          "preview": "【留空】",
+          "offset": {
+            "start": 0,
+            "len": 4
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R7C2",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 7,
+          "col": 3,
+          "role": "fixed",
+          "note": "应退业务费",
+          "preview": "应退业务费"
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "role": "clear",
+          "placeholder": "留空",
+          "preview": "【留空】",
+          "offset": {
+            "start": 0,
+            "len": 4
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R7C4",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 8,
+          "col": 1,
+          "role": "fixed",
+          "note": "承办律师意    见",
+          "preview": "承办律师意    见"
+        },
+        {
+          "row": 9,
+          "col": 1,
+          "role": "fixed",
+          "note": "主    任审批意见",
+          "preview": "主    任审批意见"
+        },
+        {
+          "row": 10,
+          "col": 1,
+          "role": "fixed",
+          "note": "结案日期",
+          "preview": "结案日期"
+        },
+        {
+          "row": 10,
+          "col": 2,
+          "role": "clear",
+          "placeholder": "留空",
+          "preview": "【留空】",
+          "offset": {
+            "start": 0,
+            "len": 4
+          },
+          "textbox": {
+            "shape_name": "fill_结案报告表_T1_R10C2",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 10,
+          "col": 3,
+          "role": "fixed",
+          "note": "备注",
+          "preview": "备注"
+        }
+      ]
+    }
+  ],
+  "paragraphs": [
+    {
+      "index": 1,
+      "role": "fixed",
+      "note": "结 案 报 告 表",
+      "preview": "结 案 报 告 表"
+    }
+  ]
+}

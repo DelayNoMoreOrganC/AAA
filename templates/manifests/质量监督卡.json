@@ -1,0 +1,101 @@
+{
+  "template": "质量监督卡",
+  "version": 3,
+  "source_doc": "质量监督卡.doc",
+  "tables": [
+    {
+      "table_index": 1,
+      "rows": 3,
+      "cells": [
+        {
+          "row": 1,
+          "col": 1,
+          "role": "header",
+          "note": "律师事务所",
+          "preview": "律师事务所"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "role": "fixed",
+          "note": "广东至高律师事务所（固定）",
+          "preview": "广东至高律师事务所（固定）"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "role": "fixed",
+          "note": "案号",
+          "preview": "案号"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "role": "clear",
+          "placeholder": "留空",
+          "preview": "【留空】",
+          "offset": {
+            "start": 0,
+            "len": 4
+          },
+          "textbox": {
+            "shape_name": "fill_质量监督卡_T1_R2C2",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "role": "fixed",
+          "note": "承办律师",
+          "preview": "承办律师"
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "role": "fill",
+          "placeholder": "=判决上的原告律师",
+          "preview": "=判决上的原告律师",
+          "offset": {
+            "start": 0,
+            "len": 9
+          },
+          "textbox": {
+            "shape_name": "fill_质量监督卡_T1_R2C4",
+            "max_chars": 80
+          }
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "role": "fixed",
+          "note": "委托人联系地址及电话",
+          "preview": "委托人联系地址及电话"
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "role": "fill",
+          "placeholder": "=委托代理合同上委托人+联系地址+电话",
+          "preview": "=委托代理合同上委托人+联系地址+电话",
+          "offset": {
+            "start": 0,
+            "len": 19
+          },
+          "textbox": {
+            "shape_name": "fill_质量监督卡_T1_R3C2",
+            "max_chars": 80
+          }
+        }
+      ]
+    }
+  ],
+  "paragraphs": [
+    {
+      "index": 1,
+      "role": "fixed",
+      "note": "律 师 办 案 质 量 监 督 卡",
+      "preview": "律 师 办 案 质 量 监 督 卡"
+    }
+  ]
+}

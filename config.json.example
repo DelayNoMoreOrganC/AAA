@@ -1,0 +1,47 @@
+{
+  "ocr": {
+    "engine": "baidu",
+    "page_engine": "rapidocr",
+    "cache": true
+  },
+  "deepseek": {
+    "api_key": "",
+    "base_url": "https://api.deepseek.com",
+    "model": "deepseek-v4-flash"
+  },
+  "baidu_ocr": {
+    "app_id": "",
+    "api_key": "",
+    "secret_key": "",
+    "mode": "basic"
+  },
+  "mineru": {
+    "cli_path": "",
+    "api_url": "",
+    "quality": "ultra",
+    "backend": "hybrid-auto-engine",
+    "method": "ocr",
+    "lang": "ch",
+    "force_ocr": true,
+    "gpu_device": "0",
+    "render_threads": 8,
+    "timeout_seconds": 7200,
+    "fallback_baidu": false
+  },
+  "local_ocr": {
+    "max_pages": 0
+  },
+  "output": {
+    "custom_path": "",
+    "docx_only": true
+  },
+  "fill": {
+    "mode": "textbox"
+  },
+  "extraction": {
+    "mode": "segmented"
+  },
+  "archive": {
+    "order_mode": "catalog"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "template": "立案审批表",
+  "version": 4,
+  "source_doc": "立案审批表_0606.doc",
+  "notes": "0606 模板：占位符【1】–【10】，见 Desktop 立案审批表（填写要求）.xlsx",
+  "tables": [
+    {
+      "table_index": 1,
+      "rows": 10,
+      "cells": [
+        {"row": 1, "col": 1, "role": "header", "note": "案件类别", "preview": "案件类别"},
+        {"row": 1, "col": 2, "role": "fill", "placeholder": "1", "preview": "【1】", "offset": {"start": 0, "len": 3}},
+        {"row": 1, "col": 3, "role": "header", "note": "合同号", "preview": "合同号"},
+        {"row": 1, "col": 4, "role": "clear", "placeholder": "2", "preview": "【2】", "offset": {"start": 0, "len": 3}},
+        {"row": 2, "col": 1, "role": "fixed", "note": "委 托 人", "preview": "委 托 人"},
+        {"row": 2, "col": 2, "role": "fill", "placeholder": "3", "preview": "【3】", "offset": {"start": 0, "len": 3}},
+        {"row": 2, "col": 3, "role": "fixed", "note": "当事人", "preview": "当事人"},
+        {"row": 2, "col": 4, "role": "fill", "placeholder": "4", "preview": "【4】", "offset": {"start": 0, "len": 3}},
+        {"row": 3, "col": 1, "role": "fixed", "note": "委托人电话", "preview": "委托人电话"},
+        {"row": 3, "col": 2, "role": "fill", "placeholder": "5", "preview": "【5】", "offset": {"start": 0, "len": 3}},
+        {"row": 3, "col": 3, "role": "fixed", "note": "传 真", "preview": "传 真"},
+        {"row": 4, "col": 1, "role": "fixed", "note": "收费标准", "preview": "收费标准"},
+        {"row": 4, "col": 2, "role": "fill", "placeholder": "6", "preview": "【6】", "offset": {"start": 0, "len": 3}},
+        {"row": 4, "col": 3, "role": "fixed", "note": "地 址", "preview": "地 址"},
+        {"row": 4, "col": 4, "role": "fill", "placeholder": "7", "preview": "【7】", "offset": {"start": 0, "len": 3}},
+        {"row": 5, "col": 1, "role": "fixed", "note": "对方当事人", "preview": "对方当事人"},
+        {"row": 5, "col": 2, "role": "fill", "placeholder": "8", "preview": "【8】", "offset": {"start": 0, "len": 3}},
+        {"row": 6, "col": 1, "role": "fill", "placeholder": "9", "preview": "案情简介：【9】", "offset": {"start": 5, "len": 3}},
+        {"row": 7, "col": 1, "role": "fixed", "note": "承办律师意见：", "preview": "承办律师意见："},
+        {"row": 8, "col": 1, "role": "fixed", "note": "主任审批意见：", "preview": "主任审批意见："},
+        {"row": 9, "col": 1, "role": "fill", "placeholder": "10", "preview": "立案日期：【10】", "offset": {"start": 5, "len": 4}},
+        {"row": 10, "col": 1, "role": "fixed", "note": "备  注：", "preview": "备  注："}
+      ]
+    }
+  ],
+  "paragraphs": [
+    {"index": 1, "role": "fixed", "note": "立 案 审 批 表", "preview": "立 案 审 批 表"}
+  ]
+}

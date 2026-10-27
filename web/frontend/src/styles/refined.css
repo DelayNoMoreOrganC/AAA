@@ -1,0 +1,111 @@
+/* Local system fonts and restrained surfaces; no remote assets. */
+:root:root {
+  --el-color-primary: #0071e3;
+  --el-color-primary-dark-2: #005bb5;
+  --el-color-primary-light-3: #478fe1;
+  --el-color-primary-light-5: #8bb7ea;
+  --el-color-primary-light-7: #c2dbf5;
+  --el-color-primary-light-8: #d9e9fa;
+  --el-color-primary-light-9: #eef5fc;
+  --el-text-color-primary: #1d1d1f;
+  --el-text-color-regular: #424245;
+  --el-text-color-secondary: #6e6e73;
+  --el-border-color: #d2d2d7;
+  --el-border-color-light: #e5e5ea;
+  --el-fill-color-light: #f5f5f7;
+  --el-border-radius-base: 9px;
+  --el-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+html body { background: #f5f5f7; color: #1d1d1f; font-family: var(--el-font-family); line-height: 1.6; }
+button, a, summary { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, summary:focus-visible { outline: 2px solid #0071e3; outline-offset: 4px; border-radius: 5px; }
+summary { cursor: pointer; }
+body .workstation .app-topbar { height: 68px; max-width: none; padding: 0 max(24px, calc((100vw - 1120px) / 2)); border: 0; background: rgba(255,255,255,.84); backdrop-filter: blur(16px); }
+body .workstation .brand { color: #1d1d1f; font-weight: 600; letter-spacing: -.02em; }
+body .workstation .brand-mark { background: #1d1d1f; font-family: inherit; font-weight: 600; font-size: 12px; border-radius: 9px; }
+body .workstation .app-nav { color: #6e6e73; gap: 24px; }
+body .workstation .app-nav > button, body .workstation .account-button { font-size: 13px; padding: 10px 0; }
+body .workstation .workspace-main { max-width: 1120px; padding: 40px 28px 64px; }
+body .workstation .back-link { color: #6e6e73; margin-bottom: 20px; font-size: 13px; }
+body .workstation .muted { color: #6e6e73; font-size: 13px; }
+body .workstation .surface { border: 0; border-radius: 18px; box-shadow: 0 0 0 1px #00000006, 0 4px 18px #00000003; }
+body .workstation .page-heading { font-size: 26px; letter-spacing: -.025em; font-weight: 600; overflow-wrap: anywhere; }
+body .workstation .el-button { font-weight: 500; min-height: 36px; transition: background-color 150ms ease, border-color 150ms ease; }
+body .workstation .el-button--large { min-height: 44px; padding: 0 24px; }
+body .el-drawer__title { font-size: 19px; font-weight: 600; color: #1d1d1f; }
+body .el-drawer__body { padding: 24px; }
+body .el-dialog { border-radius: 20px; }
+body .workstation .assistant-home { max-width: 660px; margin: 7vh auto 0; }
+body .workstation .home-intro { margin-bottom: 32px; }
+body .workstation .home-intro h1 { font-size: clamp(28px, 4vw, 36px); line-height: 1.25; letter-spacing: -.035em; font-weight: 600; margin: 0 0 12px; }
+body .workstation .home-intro p { font-size: 15px; color: #6e6e73; margin: 0; }
+body .workstation .material-drop { border: 1px dashed #c7c7cc; border-radius: 22px; padding: 40px 28px; background: #fff; box-shadow: 0 8px 32px #00000003; }
+body .workstation .material-drop.dragging { background: #eef5fc; border-color: #0071e3; }
+body .workstation .material-drop h2 { color: #1d1d1f; font-size: 18px; font-weight: 500; }
+body .workstation .material-drop p { color: #6e6e73; font-size: 13px; }
+body .workstation .drop-symbol { color: #0071e3; background: #f0f6fd; width: 52px; height: 52px; border-radius: 15px; }
+body .workstation .launch-footer { justify-content: flex-end; }
+body .workstation .home-secondary { gap: 24px; margin-top: 22px; }
+body .workstation .home-secondary button { font-size: 13px; color: #6e6e73; padding: 6px 0; }
+body .workstation .processing-note { font-size: 12px; color: #6e6e73; margin-top: 28px; text-align: center; }
+body .workstation .processing-note summary { display: list-item; width: fit-content; margin: auto; }
+body .workstation .task-workspace { max-width: 820px; margin: 0 auto; }
+body .workstation .task-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+body .workstation .task-heading > div { min-width: 0; }
+body .workstation .task-heading h1 { font-size: 22px; font-weight: 600; line-height: 1.5; letter-spacing: -.02em; margin: 0; overflow-wrap: anywhere; }
+body .workstation .task-heading p { font-size: 12px; color: #6e6e73; margin: 8px 0 0; }
+body .workstation .task-heading > .el-button { flex: none; margin-top: 42px; color: #424245; }
+body .workstation .archive-brief { padding: 28px; background: white; border-radius: 20px; box-shadow: 0 0 0 1px #00000005, 0 4px 24px #00000003; }
+body .workstation .archive-brief h2 { color: #1d1d1f; font-size: 26px; font-weight: 600; letter-spacing: -.025em; line-height: 1.4; margin: 0; }
+body .workstation .brief-stats { gap: 24px; margin-top: 16px; font-size: 13px; color: #6e6e73; }
+body .workstation .brief-stats strong { color: #1d1d1f; font-weight: 500; font-variant-numeric: tabular-nums; }
+body .workstation .brief-details { margin-top: 22px; color: #6e6e73; font-size: 13px; }
+body .workstation .brief-details[open] > summary { margin-bottom: 12px; }
+body .workstation .brief-facts { font-size: 13px; }
+body .workstation .brief-facts dt { width: 64px; color: #6e6e73; }
+body .workstation .archive-brief .brief-activity { background: #f0f6fd; border-left-color: #0071e3; color: #424245; border-radius: 0 8px 8px 0; }
+body .workstation .result-note { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 4px; margin: 8px 0 0; font-size: 12px; color: #6e6e73; border: 0; background: none; }
+body .workstation .result-note p { flex-basis: 100%; margin: 0; }
+body .workstation .archive-action-bar { position: static; background: transparent; backdrop-filter: none; border: 0; box-shadow: none; padding: 0; margin: 16px 0 26px; gap: 16px; align-items: center; }
+body .workstation .action-help { color: #6e6e73; font-size: 13px; flex: 1; }
+body .workstation .action-help p { max-width: 400px; }
+body .workstation .supplement-summary { border: 0; border-radius: 14px; background: #fff; margin: 20px 0; padding: 0 20px; color: #424245; }
+body .workstation .supplement-toggle { padding: 16px 0; font-size: 14px; font-weight: 500; }
+body .workstation .supplement-toggle span { display: inline-block; margin-left: 14px; font-size: 12px; font-weight: 400; color: #6e6e73; }
+body .workstation .supplement-disclosure[open] { padding-bottom: 18px; }
+body .workstation .supplement-heading { margin-top: 10px; }
+body .workstation .archive-assistant { margin: 30px 0 0; font-size: 13px; color: #424245; }
+body .workstation .assistant-heading { margin-bottom: 10px; }
+body .workstation .assistant-heading strong { font-size: 14px; color: #424245; font-weight: 500; }
+body .workstation .examples { display: block; margin: 10px 0; font-size: 12px; color: #6e6e73; }
+body .workstation .examples button { margin: 10px 8px 0 0; color: #424245; font-size: 12px; }
+body .workstation .assistant-composer { border: 1px solid #e5e5ea; border-radius: 16px; background: white; padding: 16px; box-shadow: 0 3px 16px #00000003; margin-top: 12px; }
+body .workstation .assistant-composer .el-textarea__inner { font-size: 14px; color: #1d1d1f; }
+body .workstation .send-row > span { font-size: 12px; color: #6e6e73; }
+body .workstation .message-text { color: #424245; font-size: 14px; line-height: 1.8; }
+body .workstation .message.user { background: #eaf3fd; }
+body .workstation .small-details, body .workstation .material-tips { font-size: 13px; color: #6e6e73; }
+body .workstation .material-tips { margin-top: 20px; }
+body .workstation .filename, body .workstation .history-case-open strong { color: #1d1d1f; font-size: 14px; }
+@media (max-width: 650px) {
+  body .workstation .app-topbar { height: 60px; padding: 0 16px; }
+  body .workstation .app-nav { gap: 14px; }
+  body .workstation .workspace-main { padding: 24px 16px 40px; }
+  body .workstation .assistant-home { margin-top: 30px; }
+  body .workstation .material-drop, body .workstation .archive-brief { padding: 24px 20px; }
+  body .workstation .task-heading { gap: 12px; }
+  body .workstation .task-heading h1 { font-size: 19px; }
+  body .workstation .archive-brief h2 { font-size: 22px; }
+  body .workstation .archive-action-bar { flex-direction: column-reverse; align-items: stretch; }
+  body .workstation .action-help { padding-top: 4px; }
+  body .workstation .brief-stats { gap: 12px 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body .workstation .app-topbar { background: #fff; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  body .workstation .app-topbar, body .workstation .surface, body .workstation .archive-brief, body .workstation .supplement-summary { background: #fff; box-shadow: 0 0 0 1px #757575; }
+}

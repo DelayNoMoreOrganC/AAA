@@ -1,0 +1,284 @@
+[
+  {
+    "case_type": "民事",
+    "source_path": "E:\\归档2\\GD工作站\\templates\\bundled\\卷内目录_民事.doc",
+    "source_sha256": "5ebfb5d6ca06a9bd45b92ac9bc26744ac3858a0f538f5f2069b9893a59cb37f6",
+    "source_unchanged": true,
+    "rows": [
+      [
+        "1",
+        "立案审批表",
+        ""
+      ],
+      [
+        "2",
+        "发票回执等收费凭证",
+        ""
+      ],
+      [
+        "3",
+        "委托代理合同",
+        ""
+      ],
+      [
+        "4",
+        "授权委托书",
+        ""
+      ],
+      [
+        "5",
+        "起诉状、上诉状或答辩状",
+        ""
+      ],
+      [
+        "6",
+        "阅卷笔录、会见当事人谈话笔录",
+        ""
+      ],
+      [
+        "7",
+        "证据材料",
+        ""
+      ],
+      [
+        "8",
+        "诉讼保全申请书、证据保全申请书、先行给付申请书和案件相关的法院裁判书",
+        ""
+      ],
+      [
+        "9",
+        "承办律师代理意见",
+        ""
+      ],
+      [
+        "10",
+        "集体讨论记录",
+        ""
+      ],
+      [
+        "11",
+        "代理词或辩护词",
+        ""
+      ],
+      [
+        "12",
+        "出庭通知书",
+        ""
+      ],
+      [
+        "13",
+        "庭审笔录",
+        ""
+      ],
+      [
+        "14",
+        "裁定书、判决书、调解书",
+        ""
+      ],
+      [
+        "15",
+        "执行申请书、执行相关法院文书",
+        ""
+      ],
+      [
+        "16",
+        "委托人须知、质量监督卡",
+        ""
+      ],
+      [
+        "17",
+        "律师所送达材料清单",
+        ""
+      ],
+      [
+        "18",
+        "结案报告",
+        ""
+      ]
+    ],
+    "word_page_count": 2,
+    "source": {
+      "path": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\source\\民事案卷目录（含执行材料）.doc",
+      "sha256": "5ebfb5d6ca06a9bd45b92ac9bc26744ac3858a0f538f5f2069b9893a59cb37f6"
+    },
+    "docx": {
+      "path": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\converted\\民事案卷目录（含执行材料）.docx",
+      "sha256": "3866213851bfdbf086913a6f09315d3f8fc346b3b8fbb4300ba757b7386c5071"
+    },
+    "pdf": {
+      "path": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\source\\民事案卷目录（含执行材料）.pdf",
+      "sha256": "9e022e06c5f0980a9b44a93f1cf37537277e1afa89ee0decbc60d87dbe351592"
+    },
+    "pdf_page_count": 2,
+    "one_page_check_passed": false,
+    "direct_original_doc_pdf_page_count": 2,
+    "differences_from_17_item_reference": {
+      "numbered_rows_before": 17,
+      "numbered_rows_after": 18,
+      "inserted_row": 15,
+      "inserted_title": "执行申请书、执行相关法院文书",
+      "closing_rows_before": [
+        15,
+        16,
+        17
+      ],
+      "closing_rows_after": [
+        16,
+        17,
+        18
+      ],
+      "page_count_before": 1,
+      "page_count_after": 2,
+      "page_2_content": "Continuation of the second existing remarks paragraph, not an empty page",
+      "main_table_complete_on_first_page": true,
+      "content_rewritten": false,
+      "format_adjusted": false
+    },
+    "visual_review": {
+      "pages_reviewed": 2,
+      "main_table_clipped": false,
+      "blank_second_page": false
+    }
+  },
+  {
+    "case_type": "行政",
+    "source_path": "E:\\归档2\\GD工作站\\templates\\bundled\\卷内目录_行政.doc",
+    "source_sha256": "21e36e220d42ac99a107af9c694b49ac6cfd7f76ade02ccf06f9b8531dabc275",
+    "source_unchanged": true,
+    "rows": [
+      [
+        "1",
+        "立案审批表",
+        ""
+      ],
+      [
+        "2",
+        "发票回执等收费凭证",
+        ""
+      ],
+      [
+        "3",
+        "委托代理合同",
+        ""
+      ],
+      [
+        "4",
+        "授权委托书",
+        ""
+      ],
+      [
+        "5",
+        "起诉状、上诉状或答辩状",
+        ""
+      ],
+      [
+        "6",
+        "阅卷笔录、会见当事人谈话笔录",
+        ""
+      ],
+      [
+        "7",
+        "证据材料",
+        ""
+      ],
+      [
+        "8",
+        "诉讼保全申请书、证据保全申请书、先行给付申请书和案件相关的法院裁判书",
+        ""
+      ],
+      [
+        "9",
+        "承办律师代理意见",
+        ""
+      ],
+      [
+        "10",
+        "集体讨论记录",
+        ""
+      ],
+      [
+        "11",
+        "代理词或辩护词",
+        ""
+      ],
+      [
+        "12",
+        "出庭通知书",
+        ""
+      ],
+      [
+        "13",
+        "庭审笔录",
+        ""
+      ],
+      [
+        "14",
+        "裁定书、判决书、调解书",
+        ""
+      ],
+      [
+        "15",
+        "执行申请书、执行相关法院文书",
+        ""
+      ],
+      [
+        "16",
+        "委托人须知、质量监督卡",
+        ""
+      ],
+      [
+        "17",
+        "律师所送达材料清单",
+        ""
+      ],
+      [
+        "18",
+        "结案报告",
+        ""
+      ]
+    ],
+    "word_page_count": 2,
+    "source": {
+      "path": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\source\\行政案卷目录（含执行材料）.doc",
+      "sha256": "21e36e220d42ac99a107af9c694b49ac6cfd7f76ade02ccf06f9b8531dabc275"
+    },
+    "docx": {
+      "path": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\converted\\行政案卷目录（含执行材料）.docx",
+      "sha256": "c05aa13c83cff61262e7272b14bf73cc0c9060eda34162da143a941296979fdc"
+    },
+    "pdf": {
+      "path": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\source\\行政案卷目录（含执行材料）.pdf",
+      "sha256": "87b285669aa1440768a32f1b0003c25c2eff36c0a3241c4b4cfa3acfaee3c01d"
+    },
+    "pdf_page_count": 2,
+    "one_page_check_passed": false,
+    "direct_original_doc_pdf_page_count": 2,
+    "differences_from_17_item_reference": {
+      "numbered_rows_before": 17,
+      "numbered_rows_after": 18,
+      "inserted_row": 15,
+      "inserted_title": "执行申请书、执行相关法院文书",
+      "closing_rows_before": [
+        15,
+        16,
+        17
+      ],
+      "closing_rows_after": [
+        16,
+        17,
+        18
+      ],
+      "page_count_before": 1,
+      "page_count_after": 2,
+      "page_2_content": "Continuation of the second existing remarks paragraph, not an empty page",
+      "main_table_complete_on_first_page": true,
+      "content_rewritten": false,
+      "format_adjusted": false
+    },
+    "visual_review": {
+      "pages_reviewed": 2,
+      "main_table_clipped": false,
+      "blank_second_page": false
+    }
+  }
+]

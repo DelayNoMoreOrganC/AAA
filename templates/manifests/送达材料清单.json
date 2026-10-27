@@ -1,0 +1,289 @@
+{
+  "template": "送达材料清单",
+  "version": 3,
+  "source_doc": "送达材料清单.doc",
+  "tables": [
+    {
+      "table_index": 1,
+      "rows": 11,
+      "cells": [
+        {
+          "row": 1,
+          "col": 1,
+          "role": "header",
+          "note": "序号",
+          "preview": "序号"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "role": "header",
+          "note": "材料名称",
+          "preview": "材料名称"
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "role": "header",
+          "note": "页数",
+          "preview": "页数"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "role": "header",
+          "note": "送达时间",
+          "preview": "送达时间"
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "role": "header",
+          "note": "送达人",
+          "preview": "送达人"
+        },
+        {
+          "row": 1,
+          "col": 6,
+          "role": "header",
+          "note": "接收人",
+          "preview": "接收人"
+        },
+        {
+          "row": 1,
+          "col": 7,
+          "role": "header",
+          "note": "备注",
+          "preview": "备注"
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "role": "fixed",
+          "note": "1",
+          "preview": "1"
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "role": "fixed",
+          "note": "委托代理合同",
+          "preview": "委托代理合同"
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "role": "fixed",
+          "note": "2",
+          "preview": "2"
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "role": "fixed",
+          "note": "委托人须知",
+          "preview": "委托人须知"
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "role": "fixed",
+          "note": "1",
+          "preview": "1"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "role": "fixed",
+          "note": "3",
+          "preview": "3"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "role": "fixed",
+          "note": "律师所收款发票",
+          "preview": "律师所收款发票"
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "role": "fixed",
+          "note": "1",
+          "preview": "1"
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "role": "fixed",
+          "note": "4",
+          "preview": "4"
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "role": "fixed",
+          "note": "质量监督卡",
+          "preview": "质量监督卡"
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "role": "fixed",
+          "note": "1",
+          "preview": "1"
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "role": "fixed",
+          "note": "5",
+          "preview": "5"
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "role": "seq_fill",
+          "placeholder": "PDF中落款是法院的所有文件，识别文件抬头",
+          "preview": "【PDF中落款是法院的所有文件，识别文件抬头】",
+          "offset": {
+            "start": 0,
+            "len": 23
+          },
+          "textbox": {
+            "shape_name": "fill_送达材料清单_T1_R6C2",
+            "max_chars": 150
+          }
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "role": "fixed",
+          "note": "页码识别",
+          "preview": "页码识别"
+        },
+        {
+          "row": 7,
+          "col": 1,
+          "role": "fixed",
+          "note": "6",
+          "preview": "6"
+        },
+        {
+          "row": 7,
+          "col": 2,
+          "role": "seq_fill",
+          "placeholder": "PDF中落款是法院的所有文件，识别文件抬头",
+          "preview": "【PDF中落款是法院的所有文件，识别文件抬头】",
+          "offset": {
+            "start": 0,
+            "len": 23
+          },
+          "textbox": {
+            "shape_name": "fill_送达材料清单_T1_R7C2",
+            "max_chars": 150
+          }
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "role": "fixed",
+          "note": "可以的话",
+          "preview": "可以的话"
+        },
+        {
+          "row": 8,
+          "col": 1,
+          "role": "fixed",
+          "note": "7",
+          "preview": "7"
+        },
+        {
+          "row": 8,
+          "col": 2,
+          "role": "seq_fill",
+          "placeholder": "PDF中落款是法院的所有文件，识别文件抬头",
+          "preview": "【PDF中落款是法院的所有文件，识别文件抬头】",
+          "offset": {
+            "start": 0,
+            "len": 23
+          },
+          "textbox": {
+            "shape_name": "fill_送达材料清单_T1_R8C2",
+            "max_chars": 150
+          }
+        },
+        {
+          "row": 9,
+          "col": 1,
+          "role": "fixed",
+          "note": "8",
+          "preview": "8"
+        },
+        {
+          "row": 9,
+          "col": 2,
+          "role": "seq_fill",
+          "placeholder": "PDF中落款是法院的所有文件，识别文件抬头",
+          "preview": "【PDF中落款是法院的所有文件，识别文件抬头】",
+          "offset": {
+            "start": 0,
+            "len": 23
+          },
+          "textbox": {
+            "shape_name": "fill_送达材料清单_T1_R9C2",
+            "max_chars": 150
+          }
+        },
+        {
+          "row": 10,
+          "col": 1,
+          "role": "fixed",
+          "note": "9",
+          "preview": "9"
+        },
+        {
+          "row": 10,
+          "col": 2,
+          "role": "seq_fill",
+          "placeholder": "PDF中落款是法院的所有文件，识别文件抬头",
+          "preview": "【PDF中落款是法院的所有文件，识别文件抬头】",
+          "offset": {
+            "start": 0,
+            "len": 23
+          },
+          "textbox": {
+            "shape_name": "fill_送达材料清单_T1_R10C2",
+            "max_chars": 150
+          }
+        }
+      ]
+    }
+  ],
+  "paragraphs": [
+    {
+      "index": 1,
+      "role": "fixed",
+      "note": "律师所送达材料清单",
+      "preview": "律师所送达材料清单"
+    },
+    {
+      "index": 2,
+      "role": "clear",
+      "placeholder": "留空",
+      "preview": "案号：【留空】"
+    },
+    {
+      "index": 3,
+      "role": "fill",
+      "placeholder": "判决书上的原告",
+      "preview": "委托方：【判决书上的原告】"
+    },
+    {
+      "index": 4,
+      "role": "fill",
+      "placeholder": "判决书上代理律师",
+      "preview": "承办律师：【判决书上代理律师】"
+    }
+  ]
+}

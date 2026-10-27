@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "audited_at": "2026-07-15",
+  "reference_root": "/Volumes/曾进朗/templates",
+  "runtime_root": "templates",
+  "authority": {
+    "business_rules": "docs/归档生成标准.md",
+    "runtime_documents": "templates/bundled",
+    "fillable_cell_semantics": "templates/manifests",
+    "field_mapping": "field_mapping.py"
+  },
+  "comparison": {
+    "reference_file_count": 16,
+    "byte_identical_files": 9,
+    "json_manifests_semantically_equal": 5,
+    "binary_doc_files_different_but_table_text_equal": [
+      "卷内目录_民事.doc",
+      "卷内目录_行政.doc"
+    ],
+    "warning": "外置目录是历史参考源，不得直接覆盖项目运行版。"
+  },
+  "system_forms": [
+    {
+      "template": "档案卷宗",
+      "runtime_doc": "templates/bundled/档案卷宗.doc",
+      "manifest": "templates/manifests/档案卷宗.json",
+      "manifest_version": 3,
+      "table_rows": 14,
+      "fillable_or_manual_cells": 15,
+      "page_budget": 1,
+      "workflow_position": "seq0，卷宗封面"
+    },
+    {
+      "template": "立案审批表",
+      "runtime_doc": "templates/bundled/立案审批表.doc",
+      "manifest": "templates/manifests/立案审批表.json",
+      "manifest_version": 4,
+      "table_rows": 10,
+      "fillable_or_manual_cells": 10,
+      "page_budget": 1,
+      "workflow_position": "seq1，正文最前"
+    },
+    {
+      "template": "质量监督卡",
+      "runtime_doc": "templates/bundled/质量监督卡.doc",
+      "manifest": "templates/manifests/质量监督卡.json",
+      "manifest_version": 3,
+      "table_rows": 3,
+      "fillable_or_manual_cells": 3,
+      "page_budget": 2,
+      "workflow_position": "卷末；包含委托人须知固定页"
+    },
+    {
+      "template": "送达材料清单",
+      "runtime_doc": "templates/bundled/送达材料清单.doc",
+      "manifest": "templates/manifests/送达材料清单.json",
+      "manifest_version": 3,
+      "table_rows": 11,
+      "fillable_or_manual_cells": 8,
+      "page_budget": 1,
+      "workflow_position": "可单独生成；诉讼类金标准默认不插入卷内目录"
+    },
+    {
+      "template": "结案报告表",
+      "runtime_doc": "templates/bundled/结案报告表.doc",
+      "manifest": "templates/manifests/结案报告表.json",
+      "manifest_version": 3,
+      "table_rows": 10,
+      "fillable_or_manual_cells": 9,
+      "page_budget": 1,
+      "workflow_position": "卷末结案系统表"
+    }
+  ],
+  "catalog_forms": [
+    {
+      "case_type": "civil",
+      "template": "卷内目录_民事.doc",
+      "write_scope": "仅回填页码列"
+    },
+    {
+      "case_type": "criminal",
+      "template": "卷内目录_刑事.doc",
+      "write_scope": "仅回填页码列"
+    },
+    {
+      "case_type": "admin",
+      "template": "卷内目录_行政.doc",
+      "write_scope": "仅回填页码列"
+    },
+    {
+      "case_type": "nonlit",
+      "template": "卷内目录_非诉.doc",
+      "write_scope": "仅回填页码列"
+    },
+    {
+      "case_type": "counsel",
+      "template": "卷内目录_顾问.doc",
+      "write_scope": "仅回填页码列"
+    }
+  ]
+}

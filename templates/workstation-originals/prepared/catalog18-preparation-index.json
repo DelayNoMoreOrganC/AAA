@@ -1,0 +1,66 @@
+[
+  {
+    "case_type": "民事",
+    "source_docx": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\converted\\民事案卷目录（含执行材料）.docx",
+    "source_sha256": "3866213851bfdbf086913a6f09315d3f8fc346b3b8fbb4300ba757b7386c5071",
+    "prepared_docx": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\prepared\\民事案卷目录（含执行材料）.docx",
+    "prepared_docx_sha256": "ff9b176374833fe265f16423036e567788f4742b388ffc35553108608d4a74dc",
+    "removed_body_child_indices_0based": [
+      4,
+      5
+    ],
+    "removed_content": "Two empty paragraphs immediately after the table and before remarks",
+    "all_text_preserved": true,
+    "table_xml_canonical_unchanged": true,
+    "changed_package_parts": [
+      "word/document.xml"
+    ],
+    "prepared_pdf": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\prepared\\民事案卷目录（含执行材料）.pdf",
+    "prepared_pdf_sha256": "cfaa27c09134d0b14f2f5a9ddc0de26741fe940b9259c166d83cdc28c73b2f72",
+    "pdf_page_count": 1,
+    "one_page_check_passed": true,
+    "all_pdf_text_preserved": true,
+    "pdf_drawing_coordinates_unchanged": true,
+    "table_pixels_identical_at_144dpi": true,
+    "table_rect": [
+      63.66,
+      108.15,
+      531.59,
+      721.49
+    ],
+    "visual_review_passed": true,
+    "visual_review_scope": "Every final page viewed; complete 18-row table and both remarks retained without clipping or overlapping."
+  },
+  {
+    "case_type": "行政",
+    "source_docx": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\converted\\行政案卷目录（含执行材料）.docx",
+    "source_sha256": "c05aa13c83cff61262e7272b14bf73cc0c9060eda34162da143a941296979fdc",
+    "prepared_docx": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\prepared\\行政案卷目录（含执行材料）.docx",
+    "prepared_docx_sha256": "ab98caf344035df2aa4247f835a001f3a85d8c640228a9224f293f1ca8e988e6",
+    "removed_body_child_indices_0based": [
+      4,
+      5
+    ],
+    "removed_content": "Two empty paragraphs immediately after the table and before remarks",
+    "all_text_preserved": true,
+    "table_xml_canonical_unchanged": true,
+    "changed_package_parts": [
+      "word/document.xml"
+    ],
+    "prepared_pdf": "E:\\归档2\\GD工作站\\templates\\workstation-originals\\prepared\\行政案卷目录（含执行材料）.pdf",
+    "prepared_pdf_sha256": "f9d5614b7c5f7168ae1cbf5dc76ce052192496d8b4a21814f4a01f035e39ef96",
+    "pdf_page_count": 1,
+    "one_page_check_passed": true,
+    "all_pdf_text_preserved": true,
+    "pdf_drawing_coordinates_unchanged": true,
+    "table_pixels_identical_at_144dpi": true,
+    "table_rect": [
+      63.66,
+      108.15,
+      531.59,
+      721.49
+    ],
+    "visual_review_passed": true,
+    "visual_review_scope": "Every final page viewed; complete 18-row table and both remarks retained without clipping or overlapping."
+  }
+]

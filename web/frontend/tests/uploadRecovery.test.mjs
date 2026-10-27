@@ -1,0 +1,16 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {createUploadRecovery} from '../src/domain/uploadRecovery.js'
+const tick=()=>new Promise(resolve=>setImmediate(resolve))
+const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes});return {promise,resolve}}
+test('two adds waiting for initial recovery cannot start parallel upload loops or lose either selection',async()=>{
+  const get=deferred(),transfer=deferred();let count=0,state,active=0,maxActive=0
+  const entries=[],uploaded=[]
+  const queue=createUploadRecovery({read:async()=>{if(!count++)await get.promise;return {items:entries.map(item=>({...item})),writable:true,notice:''}},register:async(_c,key,body)=>{const item={...body,request_id:key,status:'pending'};entries.push(item);return item},upload:async(_c,file,item)=>{active++;maxActive=Math.max(maxActive,active);uploaded.push(file.name);await transfer.promise;entries.find(entry=>entry.request_id===item.request_id).status='completed';active--},cancel:async()=>{},getCapabilities:()=>({supported_extensions:['.pdf'],max_upload_mb:100}),hash:async()=> 'a'.repeat(64),makeId:(()=>{let id=0;return ()=>String(++id)})(),onChange:value=>{state=value}})
+  try{queue.reset({caseId:'synthetic',accountScope:'u'});const first=queue.add([new File(['A'],'A.pdf')]),second=queue.add([new File(['B'],'B.pdf')]);get.resolve();await tick();assert.equal(maxActive,1);assert.deepEqual(uploaded,['A.pdf']);assert.equal(entries.length,2);assert.equal(await second,false);transfer.resolve();await first;assert.equal(state.rows.length,1);assert.equal(state.rows[0].filename,'B.pdf');assert.ok(state.rows[0].file);await queue.retry();assert.deepEqual(uploaded,['A.pdf','B.pdf']);assert.equal(maxActive,1);assert.equal(state.rows.length,0)}finally{queue.dispose()}
+})
+test('invalid selections remain explicitly local and removable; valid batch is fully registered before first upload',async()=>{
+  let state,id=0;const events=[],entries=[]
+  const queue=createUploadRecovery({read:async()=>({items:entries.map(item=>({...item})),writable:true,notice:''}),register:async(_c,key,body)=>{events.push('register:'+body.filename);entries.push({...body,request_id:key,status:'pending'})},upload:async(_c,file,item)=>{events.push('upload:'+file.name);entries.find(entry=>entry.request_id===item.request_id).status='completed'},cancel:async()=>{throw Error('local removal must not contact server')},getCapabilities:()=>({supported_extensions:['.pdf'],max_upload_mb:1}),hash:async()=> 'b'.repeat(64),makeId:()=>String(++id),onChange:value=>{state=value}})
+  try{queue.reset({caseId:'synthetic',accountScope:'u'});await tick();await queue.add([new File(['A'],'A.pdf'),new File(['B'],'B.pdf'),new File(['unsupported'],'bad.txt'),new File([],'empty.pdf')]);assert.deepEqual(events,['register:A.pdf','register:B.pdf','upload:A.pdf','upload:B.pdf']);assert.equal(state.rows.length,2);assert.equal(state.navigationDirty,true);for(const row of state.rows){assert.equal(row.local,true);assert.match(row.message,/尚未登记/)};for(const row of [...state.rows])await queue.remove(row.request_id);assert.equal(state.navigationDirty,false);assert.equal(state.blocked,false)}finally{queue.dispose()}
+})

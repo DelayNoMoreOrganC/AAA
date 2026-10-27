@@ -1,0 +1,68 @@
+[
+  {
+    "name": "立案审批表-归档用.doc",
+    "docx": "立案审批表-归档用.docx",
+    "pages": 1,
+    "sha256": "fee1c553b894f6157dc435d9a0df226c3ccc5825dde3275b3f4b79b3a572a402"
+  },
+  {
+    "name": "律师所送达材料清单.doc",
+    "docx": "律师所送达材料清单.docx",
+    "pages": 1,
+    "sha256": "d3df46dedb015226a8f70c1ac381ef3b5bf413c917e64b57a63b5c8c667c4cfa"
+  },
+  {
+    "name": "律师业务档案卷宗（诉讼类）.doc",
+    "docx": "律师业务档案卷宗（诉讼类）.docx",
+    "pages": 1,
+    "sha256": "1a22ba549f6fbaf28975d1d642b8b6e7944a97e421f20b0f22ad940943364d94"
+  },
+  {
+    "name": "律师业务档案卷宗（非诉讼类）.doc",
+    "docx": "律师业务档案卷宗（非诉讼类）.docx",
+    "pages": 1,
+    "sha256": "d1d4480ae33a491131be6b3e75635c15c2c81f5b0653699ffc9036108f7a7f97"
+  },
+  {
+    "name": "结案报告表--归档用.doc",
+    "docx": "结案报告表--归档用.docx",
+    "pages": 1,
+    "sha256": "faeab3453db858452763c538646de14a46c68bfc710f1f911539558b9f6466a8"
+  },
+  {
+    "name": "律师办案质量监督卡+委托人须知（2021）.doc",
+    "docx": "律师办案质量监督卡+委托人须知（2021）.docx",
+    "pages": 2,
+    "sha256": "ba7e61b8273790eafed38b40d61ee5e5455169c2df763631d6bfff0bc19335f0"
+  },
+  {
+    "name": "民事案卷目录（含送达材料清单）.doc",
+    "docx": "民事案卷目录（含送达材料清单）.docx",
+    "pages": 1,
+    "sha256": "072b14a74719b8af1f97d3fafdf0907612488173dc3bb6b693278b99a12daba5"
+  },
+  {
+    "name": "刑事案卷目录（含送达材料清单）.doc",
+    "docx": "刑事案卷目录（含送达材料清单）.docx",
+    "pages": 1,
+    "sha256": "703b37654ae8c9be0851c0658148e32db5285853017381a576706a68cadc56ca"
+  },
+  {
+    "name": "行政案卷目录 （含送达材料清单）.doc",
+    "docx": "行政案卷目录 （含送达材料清单）.docx",
+    "pages": 1,
+    "sha256": "ccb4ecd921cc071d0d7d9f01c73ab9ec887144eb2cf37cea87e747050ff7c0b2"
+  },
+  {
+    "name": "非诉案卷目录（含送达材料清单）.doc",
+    "docx": "非诉案卷目录（含送达材料清单）.docx",
+    "pages": 1,
+    "sha256": "e6a31e48921c118bba37014ffa4f762c178aa7c55802e41a442b2584eeb29e6b"
+  },
+  {
+    "name": "顾问案卷目录 （含送达材料清单）.doc",
+    "docx": "顾问案卷目录 （含送达材料清单）.docx",
+    "pages": 1,
+    "sha256": "e9081816fe3fb48e1f841758833e902dd8128810d9cc7d56f9b8a1d2b12a61bb"
+  }
+]

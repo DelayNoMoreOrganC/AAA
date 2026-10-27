@@ -1,0 +1,15 @@
+export function fieldText(value){return Array.isArray(value)?value.map(item=>String(item??'')).join('\n'):value==null?'':String(value)}
+const assuranceLabels={human_confirmed:'人工填写或确认',source_supported:'有原文依据，待核对',derived_draft:'依据材料预填，待核对',conflict:'来源存在冲突',unverified:'尚无可核验依据',missing:'材料中尚未取得',configured:'案件设置',convention_default:'按合同日期默认（仅审批表）'}
+export function normalizeFieldAssurance(value){
+  const status=Object.hasOwn(assuranceLabels,value?.status)?value.status:'unverified'
+  const seen=new Set(),anchors=(Array.isArray(value?.anchors)?value.anchors:[]).filter(item=>item&&typeof item.file_id==='string'&&item.file_id&&Number.isSafeInteger(item.page)&&item.page>0).map(({file_id,page})=>({file_id,page})).filter(item=>{const key=item.file_id+':'+item.page;if(seen.has(key))return false;seen.add(key);return true})
+  return {status,label:assuranceLabels[status],source_count:anchors.length,anchors,reason_codes:(Array.isArray(value?.reason_codes)?value.reason_codes:[]).filter(code=>typeof code==='string'&&/^[a-z0-9_]{1,100}$/.test(code))}
+}
+export function normalizeTemplateFields(value){const seen=new Set();return (Array.isArray(value)?value:[]).filter(item=>item&&typeof item.key==='string'&&item.key&&!seen.has(item.key)&&seen.add(item.key)).map(item=>({key:item.key,label:typeof item.label==='string'?item.label:item.key,value:fieldText(item.value),multiline:item.multiline===true,assurance:normalizeFieldAssurance(item.assurance),...(typeof item.display_value==='string'&&item.display_value?{display_value:item.display_value,display_note:typeof item.display_note==='string'?item.display_note:''}:{})}))}
+export function templateValues(fields){return Object.fromEntries(fields.map(item=>[item.key,item.value]))}
+export function changedTemplateValues(fields,baseline){return Object.fromEntries(fields.filter(item=>item.value!==baseline[item.key]).map(item=>[item.key,item.value]))}
+export function conflictingTemplateFields(changes,baseline,current){const latest=templateValues(normalizeTemplateFields(current));return Object.keys(changes).filter(key=>!(key in latest)||latest[key]!==baseline[key])}
+export async function templateRequestError(error,fallback){let data=error?.response?.data;if(typeof data?.text==='function'){try{data=JSON.parse(await data.text())}catch{data=null}}return typeof data?.detail==='string'?data.detail:error instanceof Error&&error.message?error.message:fallback}
+export function templatePdfMetadata(headers){const get=name=>headers?.get?.(name)??headers?.[name];const revision=Number(get('x-task-revision'));return {original:get('x-template-fidelity')==='original',revision:Number.isSafeInteger(revision)&&revision>0?revision:null,pdf:String(get('content-type')||'').includes('application/pdf')}}
+
+export function templatePageMetadata(headers){const get=name=>headers?.get?.(name)??headers?.[name];const base=templatePdfMetadata(headers),page=Number(get("x-template-page")),pages=Number(get("x-template-pages"));return {...base,image:String(get("content-type")||"").includes("image/png"),page:Number.isSafeInteger(page)&&page>0?page:null,pages:Number.isSafeInteger(pages)&&pages>=page?pages:null}}

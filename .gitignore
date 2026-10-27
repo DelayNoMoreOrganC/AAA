@@ -41,3 +41,6 @@ dist/
 .vscode/
 .cursor/
 
+
+# Presentation source stays outside this repository
+/showcase/

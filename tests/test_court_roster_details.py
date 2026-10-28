@@ -47,6 +47,13 @@ def test_closed_roster_extracts_both_opponents_and_only_client_contact():
         assert {item['field'] for item in supports}=={'当事人','委托人','案号'}
 
 
+def test_last_counsel_before_next_party_is_not_lost_with_delimiter():
+    page=COURT.replace('委托诉讼代理人：虚构程甲，联系电话：99999999999。',
+        '委托诉讼代理人：虚构程甲，虚构明理律师事务所律师。\n委托诉讼代理人：虚构程乙，虚构明理律师事务所律师。')
+    values={r['field']:r['value'] for r in candidates(page,CLIENT,NUMBER)}
+    assert values['承办律师']=='虚构程甲、虚构程乙'
+
+
 def test_defendant_client_does_not_make_codefendant_an_opponent():
     page=COURT.replace(f'原告：{CLIENT}',f'原告：虚构戊').replace('被告：虚构乙',f'被告：{CLIENT}')
     values={x['field']:x['value'] for x in candidates(page,CLIENT,NUMBER)}

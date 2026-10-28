@@ -31,7 +31,7 @@ TEMPLATE_FIELD_SPECS: dict[str, list[dict[str, Any]]] = {
         _field("立案审批日期", "立案日期", "收案日期"),
     ],
     "送达材料清单": [
-        _field("法院收案号", "案号", "案号"),
+        _field("合同号", "案号（律所内部编号）"),
         _field("承办律师", "承办律师"),
         _field("委托人", "委托人", "委托人名称"),
         _field("法院文件清单", "法院文件清单", "法院文书", multiline=True),
@@ -69,7 +69,7 @@ TEMPLATE_FIELD_SPECS: dict[str, list[dict[str, Any]]] = {
     ],
     "质量监督卡": [
         _field("律师事务所", "律师事务所"),
-        _field("法院收案号", "案号", "案号"),
+        _field("合同号", "案号（律所内部编号）"),
         _field("承办律师", "承办律师"),
         _field(
             "委托人联系地址及电话",
@@ -84,6 +84,8 @@ TEMPLATE_FIELD_SPECS: dict[str, list[dict[str, Any]]] = {
 def _first_value(fields: dict[str, Any], keys: list[str]) -> Any:
     # A deliberate blank is a decision, not permission to restore an old alias.
     canonical = keys[0]
+    if fields.get('_model_form_synthesis') and canonical in ('结案小结', '审（办）结果'):
+        return fields.get(canonical) or ''
     provenance = (fields.get("_provenance") or {}).get(canonical) or []
     if isinstance(provenance, dict):
         provenance = [provenance]
@@ -140,7 +142,13 @@ def build_preview(template_name: str, fields: dict[str, Any] | None, *, derived_
     items = []
     for spec in TEMPLATE_FIELD_SPECS[template_name]:
         keys = [spec["key"], *spec["aliases"]]
+        if spec['key']=='立案审批日期':keys=[spec['key']]
         value = _first_value(source, keys)
+        # Reference answers (including a typed "满意") are not permission to
+        # answer a client's evaluation on a new generated form.
+        if spec['key']=='委托人对服务质量意见':
+            from ..core.v4_bridge import load
+            value=load('form_cell_contracts').explicit_human_value(source,spec['key'])
         source_key = next((key for key in keys if source.get(key) == value), spec["key"])
         from .field_assurance import field_assurance
         items.append({
@@ -151,15 +159,25 @@ def build_preview(template_name: str, fields: dict[str, Any] | None, *, derived_
             "assurance": field_assurance(spec["key"], value, source, source_key=source_key,
                                          source_manifest=source_manifest, issues=issues),
         })
+        from ..core.v4_bridge import load
+        policy=load('form_cell_contracts').optional_output(spec['key'],value,source)
+        if policy:
+            status=items[-1]['assurance']['status']
+            if (spec['key'] in load('form_cell_contracts').OPTIONAL_FACT_FIELDS
+                    and (status=='conflict' or source_manifest and status not in
+                         ('human_confirmed','source_supported','convention_default'))):
+                policy={'value':'','code':'optional_blank','reason':'当前来源未能明确核实，按使用约定留空；不强制补填。'}
+            items[-1]['value']=policy['value']
+            items[-1]['output_policy']={k:v for k,v in policy.items() if k!='value'}
         if template_name == '立案审批表' and spec['key'] == '收费标准':
             from ..core.v4_bridge import load
             presentation = load('fee_display').current(source)
-            if presentation:
+            if presentation and items[-1]['value']:
                 items[-1].update(display_value=presentation['value'], display_note=presentation['note'], multiline=True)
         if template_name == '立案审批表' and spec['key'] == '立案审批日期':
             from ..core.v4_bridge import load
             presentation = load('intake_contract_date').presentation(source)
-            if presentation:
+            if presentation and items[-1]['value']:
                 items[-1].update(display_value=presentation['value'], display_note=presentation['note'])
     return {"template": template_name, "fields": items, "derived_output": dict(derived_output or {})}
 

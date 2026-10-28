@@ -126,6 +126,18 @@ def _identifiers(block):
 
 def _client_identifiers(text, client):
     # The already-validated client occurrence, not the law firm's adjacent ID.
+    # Bank engagements label both parties on one page. Read the closed甲方
+    # header, including its company ID below the representative, without
+    # mixing in the adjacent firm's credit code.
+    closed=re.search(r'委托方[（(]甲方[）)][:：]\s*(.*?)受托方[（(]乙方[）)][:：]',text,re.S)
+    if closed and '委托代理合同' in text[:160]:
+        block=closed[1]
+        head=re.split(r'住所[:：]',block,maxsplit=1)
+        if len(head)==2 and _name(head[0])==_name(client):
+            labels=re.findall(r'统一社会信用代码',block)
+            ids=re.findall(r'统一社会信用代码[:：]\s*_?\s*([0-9A-Z]{18})(?![0-9A-Z])',block)
+            if len(labels)!=len(ids) or len(ids)>1:return None
+            return {'统一社会信用代码':ids[0]} if ids else {}
     from source_engagement_evidence import poa_candidates
     if any(row['field']=='委托人' and _name(row['value'])==_name(client)
            for row in poa_candidates(text)):

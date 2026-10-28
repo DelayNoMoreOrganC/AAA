@@ -617,6 +617,8 @@ def _semantic_supported(field: str, value: str, quoted: str, contextual: str, pa
         return bool(fee and (complete or base_recovery or label(labels) or re.search(governed, quoted) or
                              re.search(r"(?:约定|收取|计收|支付)[^。;；]{0,12}" + escaped, quoted) and re.search("|".join(labels), value)))
     if field == '委托人传真':
+        from source_contract_roster import header_contacts
+        if header_contacts(raw_page).get(field)==value:return True
         digits = re.sub(r'\D', '', value)
         prefix = _sentence_prefix(page, source_start)
         return bool(7 <= len(digits) <= 18 and re.fullmatch(r'[+\d()\-]+', value)
@@ -624,6 +626,8 @@ def _semantic_supported(field: str, value: str, quoted: str, contextual: str, pa
                     and label(('委托人传真', '委托方传真', '委托人联系传真', '委托方联系传真',
                                '委托人传真号码', '委托方传真号码')))
     if field == "委托人电话":
+        from source_contract_roster import header_contacts
+        if header_contacts(raw_page).get(field)==value:return True
         digits = re.sub(r"\D", "", value)
         return bool(7 <= len(digits) <= 18 and label(("委托人电话", "委托人联系电话", "委托方电话", "委托方联系电话")))
     if field == "地址":

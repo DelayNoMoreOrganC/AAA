@@ -23,6 +23,7 @@ from fee_settlement_evidence import FIELDS as SETTLEMENT_FIELDS
 from visual_archive_agent import ALLOWED_TYPES, GlmVisionError, VISUAL_ANALYSIS_VERSION, _safe_record, _catalog_mapping
 from document_title_review import review_visual_titles
 from ocr_review import ocr_read_payload
+from form_field_policy import extraction_rules
 
 BATCH_PAGES = 4
 MAX_STEPS = 5
@@ -161,7 +162,7 @@ read_text: {"tool":"read_text","page_ids":["页ID"]}，每次最多3页，只有
 """
 CLASSIFY_SYSTEM = BASE_SYSTEM + """当前只做文书分类，不提取字段。每份真正独立文书首页document_start=true，同类不同文书也必须分开。每个文件首页必须true；续页延续类别、角色及阶段。
 record_batch: {"tool":"record_batch","pages":[{"page_id":"页ID","doc_type":"类别","confidence":0.9,"document_start":true,"document_role":"角色","procedure_stage":"阶段","title":"首页识别的实际文书标题，可省略，不超过120字"}],"field_page_ids":["可能有本案关键字段的本批页ID"],"facts":[]}。
-必须包含本批每页各一次，不能包含参考页。空白/副本/附件也保留，不能去重或省略。field_page_ids仅标记可能有委托信息、案号、日期、费用或裁判主文的页，不摘录值。
+必须包含本批每页各一次，不能包含参考页。空白/副本/附件也保留，不能去重或省略。field_page_ids标记可能有委托信息、案号、日期、费用、诉状事实与诉求、裁判主文、实际服务内容与成果或办理经过的页，不摘录值。非诉重点包括公证文书、法律意见和工作记录；顾问重点包括服务期间、往来函件、合同修改与咨询记录；刑事重点包括起诉书、会见、辩护意见和历次裁判，不能只标记最后一页或合同页。
 开庭通知可表现为传票、通知开庭的短信截图或系统截图。须确认法院、本案案号、开庭事项及时间地点；送达提醒、受理通知、缴费短信不归summons。驳回起诉的民事裁定属于ruling，不是保全裁定，也不能改写为实体驳回诉讼请求。
 按全文用途和上下文判断，不凭单个标题词决定：撤诉申请是withdrawal_request，不等于起诉状，也不证明法院准许；准许/不准许撤诉裁定才是ruling。受理案件通知是case_acceptance_notice，不等于传票/出庭通知summons。不能因为都叫通知或申请而混类。
 无法准确对应现有类别的程序申请/受理通知选择unknown，保留材料等待人工归类，不发明目录规则。执行阶段文书不混为审判裁判。
@@ -651,6 +652,7 @@ def analyze_documents(pages, client, case_type, provider, model, log, started, *
                 "document_role": document["role"], "procedure_stage": document["stage"], "本份允许页面": keys,
                 "本组选读页面": selection, "已有字段名": list(fields),
                 "本份重点核查字段": _document_field_targets(unit.doc_type),
+                "逐栏取材规则": extraction_rules(_document_field_targets(unit.doc_type)),
                 "提交契约": {"必填顶层键": ["tool", "document_id", "facts"], "tool必须为": "record_fields",
                     "document_id必须为": document["id"], "无可核事实时的合法示例": {"tool": "record_fields", "document_id": document["id"], "facts": []},
                     "有事实时每项必填键": ["field", "value", "page_id", "quote"], "初始可用事实页ID": selection,
@@ -769,7 +771,7 @@ def analyze_documents(pages, client, case_type, provider, model, log, started, *
     # Complete only short narrative-bearing documents, within a fixed local
     # read budget. No extra model call, no unbounded whole-volume OCR.
     from narrative_sources import complete_narrative_pages
-    narrative_reads = complete_narrative_pages(pages, units, evidence_seen, request_guard)
+    narrative_reads = complete_narrative_pages(pages, units, evidence_seen, request_guard, case_type=case_type)
     cache, source_scope = cached_visual_sources(pages, evidence_seen, units)
     # Reuse text obtained during extraction; never make another model request
     # simply to resolve an index-to-attachment relationship.
@@ -797,8 +799,26 @@ def analyze_documents(pages, client, case_type, provider, model, log, started, *
         accepted_values.add((field, compact(value)))
         accepted_count += 1
     duplicate_count += linked_duplicates
+    from form_synthesis import generate as generate_form_content
+    synthesis_requests_before = client.metrics.get('model_requests', 0)
+    try:
+        form_synthesis_status = generate_form_content(client, fields, provenance, conflicts,
+            units, cache, source_scope, case_type=case_type, guard=request_guard)
+    except (DeepSeekVisionError, OllamaVisionError):
+        # Retain independently extracted facts and checkpoints. A failed
+        # optional writing step is visible; it must not erase the whole case
+        # or trigger a provider fallback / automatic paid retry.
+        from form_field_policy import NARRATIVES
+        form_synthesis_status = {'status':'provider_failed',
+            'requests':client.metrics.get('model_requests',0)-synthesis_requests_before,
+            'fields':{key:'provider_failed' for key in NARRATIVES}}
+        _finish_segment(client, 'operation_limit')
+    else:
+        if form_synthesis_status['requests']:
+            _finish_segment(client, 'completed')
     extraction_seconds = perf_counter() - extraction_started
     metadata = {"_provenance": provenance, "_field_conflicts": conflicts, "_fact_review": fact_review,
+        "_form_synthesis_status": form_synthesis_status,
         "_source_fact_recall": source_recall,
         "_targeted_fact_review": targeted_review,
         "_ocr_review": pages.ocr_review, "_agent_events": events,

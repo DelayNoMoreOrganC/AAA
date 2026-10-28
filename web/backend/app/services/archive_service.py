@@ -559,10 +559,8 @@ async def update_task_fields(task, org_id: str, field_updates: dict, actor_id: s
     manual.update(changes)
     task.manual_fields = manual
     merged.update(field_updates or {})
-    if "结案小结" in field_updates:
-        v = field_updates["结案小结"]
-        merged["审（办）结果"] = v
-        merged["审办结果"] = v
+    # Closure narrative and outcome have different purposes and independent
+    # provenance. Editing one must not silently rewrite the other.
     provenance = dict(merged.get("_provenance") or {})
     for key, value in changes.items():
         if key.startswith("_"):

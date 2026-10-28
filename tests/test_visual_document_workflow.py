@@ -6,6 +6,15 @@ import subprocess
 
 import fitz
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def isolate_literal_extraction_contract(monkeypatch):
+    # This suite asserts the classification/extraction transport budget and
+    # wire schema. Narrative generation has a different schema and its own
+    # tests in test_form_synthesis.py; do not send it to these two-stage fakes.
+    monkeypatch.setattr('form_synthesis.generate', lambda *a, **k:
+                        {'status': 'isolated_in_extraction_test', 'requests': 0, 'fields': {}})
 import requests
 
 from document_segmenter import DocumentSource
@@ -90,6 +99,37 @@ def run(sources, *, title_review_budget=None):
 
 def coverage(units):
     return Counter((unit.source_path, page) for unit in units for page in range(unit.start_page, unit.end_page + 1))
+
+
+def test_live_workflow_passes_read_materials_to_form_writing_once(tmp_path, monkeypatch):
+    source=pdf(tmp_path,1,texts=['委托代理合同\n委托人：虚构星河公司。'])
+    mock_client(monkeypatch, lambda ctx,*_: classified(ctx,kind='contract')
+                if ctx['phase']=='classification' else extracted(ctx))
+    calls=[]
+    def write(client,fields,provenance,conflicts,units,cache,allowed,**kwargs):
+        calls.append(kwargs['case_type'])
+        assert (source.path,1) in allowed and cache[(source.path,1)]
+        fields['结案小结']='接线检查，非模型质量证明。'
+        return {'status':'fixture','requests':0,'fields':{}}
+    monkeypatch.setattr('form_synthesis.generate',write)
+    _,fields,metadata,_=run([source])
+    assert calls==['civil'] and fields['结案小结']=='接线检查，非模型质量证明。'
+    assert metadata['_form_synthesis_status']['status']=='fixture'
+
+
+def test_form_provider_failure_keeps_prior_facts_without_retry(tmp_path, monkeypatch):
+    source=pdf(tmp_path,1,texts=['委托代理合同\n委托人：虚构星河公司。'])
+    mock_client(monkeypatch, lambda ctx,*_: classified(ctx,kind='contract')
+                if ctx['phase']=='classification' else extracted(ctx,[fact()]))
+    attempts=[]
+    def fail(*args,**kwargs):
+        from deepseek_vision_client import DeepSeekVisionError
+        attempts.append(1)
+        raise DeepSeekVisionError('INVALID_RESPONSE')
+    monkeypatch.setattr('form_synthesis.generate',fail)
+    _,fields,metadata,_=run([source])
+    assert fields['委托人']=='虚构星河公司' and attempts==[1]
+    assert metadata['_form_synthesis_status']['status']=='provider_failed'
 
 
 def test_fee_settlement_fields_pass_real_two_stage_boundary_with_mock_transport(tmp_path, monkeypatch):

@@ -293,6 +293,10 @@ def current_stage_summary_supported(fields, manual_fields=None, source_manifest=
 
 
 def _brief(fields, manual, scope, units=()):
+    from business_intake import draft as business_draft
+    business = business_draft(fields, units, lambda ref: _anchor(ref, scope))
+    if business:
+        return business
     from complaint_brief import draft
     sourced = draft(fields, units, lambda ref: _anchor(ref, scope))
     independent_common = sourced and 'multiple_pleading_versions' in sourced[2]
@@ -360,9 +364,12 @@ def _contact(fields, manual, scope):
     # that field or pretending the whole address is printed in this small cell.
     address = values.get("地址", "")
     if address and len(address) <= 65 and sum(0.5 if ord(char) < 128 else 1 for char in address) <= 40 and not any(char in address for char in "\r\n\t"):
-        text = ("电话：" + values["委托人电话"] + "；" if "委托人电话" in values else "") + "地址见立案审批表"
-        if len(text) <= 90 and sum(0.5 if ord(char) < 128 else 1 for char in text) <= 18 and not any(char in text for char in "\r\n\t"):
-            return text, [ref for ref in refs if ref["field"] in {"地址", "委托人电话"}], reasons + ["contact_address_in_filing_form"]
+        # The cell already says "地址及电话". Removing the repeated phone label
+        # saves space without dropping digits or leaving the entire cell blank.
+        for label in ('电话：',''):
+            text = (label + values["委托人电话"] + "；" if "委托人电话" in values else "") + "地址见立案审批表"
+            if len(text) <= 90 and sum(0.5 if ord(char) < 128 else 1 for char in text) <= 18 and not any(char in text for char in "\r\n\t"):
+                return text, [ref for ref in refs if ref["field"] in {"地址", "委托人电话"}], reasons + ["contact_address_in_filing_form"]
     # Keep complete accepted values/quotes in the source audit. An empty draft
     # with an explicit reason is preferable to a value guaranteed to overflow.
     return "", refs, reasons + ["draft_too_long_for_original_cell"]
@@ -579,6 +586,8 @@ def derive_form_drafts(fields, units, *, source_manifest, manual_fields=None, bl
     result = deepcopy(fields or {})
     manual = manual_fields or {}
     result.update({key: deepcopy(value) for key, value in manual.items() if not key.startswith("_")})
+    from form_synthesis import discard_stale
+    discard_stale(result, manual, source_manifest, units)
     old = (result.get("_form_drafts") or {}).get("fields") or {}
     inputs = dict(result)
     inputs["_form_draft_blocked_fields"] = {key for key in blocked_fields if isinstance(key, str)}
@@ -606,6 +615,16 @@ def derive_form_drafts(fields, units, *, source_manifest, manual_fields=None, bl
         current, previous = result.get(field, ""), old.get(field) or {}
         history = provenance.get(field) or []
         history = history if isinstance(history, list) else [history]
+        from form_synthesis import current_support as model_support
+        model_ref = next((ref for ref in reversed(history) if isinstance(ref, dict)
+                          and ref.get('binding') == 'model_form_synthesis'
+                          and model_support(ref, result) is not None), None)
+        if model_ref and field not in manual and not _human_value(inputs, field):
+            statuses[field] = {'status':'generated', 'reason_codes':['source_bound_model_summary'],
+                               'source_count':1 + len(model_support(model_ref,result)),
+                               'value_digest':_digest(current)}
+            sources[field] = [deepcopy(model_ref)]
+            continue
         owned = (previous.get("status") in ("generated", "insufficient", "not_applicable")
                  and previous.get("value_digest") == _digest(current))
         human = field in manual or previous.get("status") == "human_modified" or _human_value(inputs, field)
@@ -680,7 +699,20 @@ def draft_review_summary(fields):
               and "draft_too_long_for_original_cell" in (statuses.get(field) or {}).get("reason_codes", [])]
     stage_only = ["结案小结"] if ((statuses.get("结案小结") or {}).get("status") == "generated"
                  and "stage_summary_not_final_closure" in (statuses.get("结案小结") or {}).get("reason_codes", [])) else []
+    synthesis = fields.get('_model_form_synthesis') or {}
+    gap_labels = {'missing_facts':'争议事实', 'missing_requests':'诉讼请求', 'missing_work':'实际办理记录',
+                  'missing_result':'最终结果', 'conflicting_sources':'相互冲突的依据',
+                  'incomplete_source':'未读完整的材料', 'missing_identity':'主体身份',
+                  'needs_source_review':'部分表述的原文核查（不是要求重复补件）'}
+    synthesis_gaps = {key: [gap_labels[code] for code in row.get('missing', []) if code in gap_labels]
+                      for key, row in synthesis.get('fields', {}).items()
+                      if fields.get(key) == row.get('value') and row.get('missing')
+                      and draft_field_needs_generated_form(fields, key)}
+    synthesis_pending = [key for key, status in (fields.get('_form_synthesis_status') or {}).get('fields', {}).items()
+                         if status != 'generated' and draft_field_needs_generated_form(fields, key)]
     return {"generated_count": sum(item.get("status") == "generated" for item in statuses.values()),
+            **({'synthesis_gaps': synthesis_gaps} if synthesis_gaps else {}),
+            **({'synthesis_pending_fields': synthesis_pending} if synthesis_pending else {}),
             **({"stage_summary_fields": stage_only} if stage_only else {}),
             "insufficient_fields": [field for field in (*DRAFT_FIELDS,'立案审批日期') if (statuses.get(field) or {}).get("status") == "insufficient" and field not in layout],
             "layout_review_fields": layout,
@@ -688,7 +720,7 @@ def draft_review_summary(fields):
             # information. Preserve them in the audit without asking for a
             # redundant field review. Unknown/caution codes remain visible.
             "review_fields": [field for field in DRAFT_FIELDS if any(reason not in (
-                                  "attributed_pleading_excerpt", "explicit_project_name_preserved")
+                                  "attributed_pleading_excerpt", "explicit_project_name_preserved", "source_bound_model_summary")
                                   for reason in (statuses.get(field) or {}).get("reason_codes", []))
                               and (statuses.get(field) or {}).get("status") == "generated"]}
 
@@ -707,4 +739,9 @@ def draft_review_message(fields):
         parts.append("信息可能不完整：" + "、".join(summary["review_fields"]))
     if summary.get("stage_summary_fields"):
         parts.append("结案小结栏仅整理有据阶段工作或协议状态；阶段记录不证明正式结案，也不证明付款或履行")
+    if summary.get('synthesis_gaps'):
+        parts.append('已填写有据内容，尚缺：' + '；'.join(
+            key + '（' + '、'.join(gaps) + '）' for key, gaps in summary['synthesis_gaps'].items()))
+    if summary.get('synthesis_pending_fields'):
+        parts.append('综合撰写尚未通过核查，保留原有内容：' + '、'.join(summary['synthesis_pending_fields']))
     return ("；".join(parts) + "。文书清单不证明已送达，草稿不代替审批或签章" if parts else ""), summary

@@ -9,7 +9,7 @@ import re
 from source_party_evidence import current_client_party_support, _name, _rows
 from source_court_evidence import extract_court_header_candidate
 
-FIELDS=('对方当事人','地址','委托人电话')
+FIELDS=('对方当事人','地址','委托人电话','承办律师','案由')
 DERIVATION='court_party_details'
 _ROLE=re.compile(r'(?:^|[。；;\r\n])\s*(?P<role>原告|被告|第三人)\s*[:：]\s*')
 _RISK=re.compile(r'另案|参考案例|引用案例|拟|假设|范本|模板|原告反诉|被告反诉|反诉原告|反诉被告')
@@ -53,6 +53,15 @@ def candidates(text,client,number):
         if value and len(value)<=200 and not re.search(r'曾住|原住|旧址|暂住|待核|不详|变更|迁至',value):values['地址']=value
     phone=re.search(r'(?:联系电话|电话)[:：]\s*([0-9+()（）\-\s]{7,25})(?=[。;；,，]|$)',own)
     if phone and 7<=len(re.sub(r'\D','',phone[1]))<=18:values['委托人电话']=_name(phone[1])
+    # Named counsel in the represented party's closed roster, not every lawyer
+    # mentioned by the judgment. This does not prove each one attended court.
+    lawyer_rows=re.findall(r'委托(?:诉讼)?代理人[:：]\s*([^，,。；;\n]{2,20})[，,]\s*([^。；;]{2,100}律师事务所)律师(?:[。；;]|$)',block)
+    lawyer_labels=re.findall(r'委托(?:诉讼)?代理人[:：]',block)
+    if lawyer_rows and len(lawyer_rows)==len(lawyer_labels):
+        values['承办律师']='、'.join(dict.fromkeys(_name(name) for name,firm in lawyer_rows))
+    if role=='原告' and len(names)==1:
+        caption=re.search(r'原告'+re.escape(_name(client))+r'诉被告'+re.escape(names[0])+r'([^。；：:]{2,24}纠纷)一案',_name(text))
+        if caption:values['案由']=caption[1]
     return [{'field':field,'value':value,'quote':text,'subject':client,'case_number':number,
              'role':role,'binding':DERIVATION,'derivation':DERIVATION} for field,value in values.items()]
 

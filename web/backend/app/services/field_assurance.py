@@ -80,6 +80,12 @@ def field_assurance(key, value, fields, *, source_key=None, source_manifest=(), 
 
     evidence = []
     for ref in refs:
+        if ref.get('method') == 'model_form_synthesis':
+            supports = supporting_refs(ref, fields, source_manifest)
+            if supports is not None and anchor(ref):
+                evidence.append(anchor(ref))
+                evidence.extend(anchor(item) for item in supports if anchor(item))
+            continue
         if actual_key in ('应收业务费', '已收业务费', '尚欠业务费', '应退业务费') and ref.get('binding') != 'case_fee_settlement':
             continue  # Raw amount candidates have not passed case identity.
         from ..core.v4_bridge import load
@@ -111,6 +117,8 @@ def field_assurance(key, value, fields, *, source_key=None, source_manifest=(), 
                 evidence.append(located)
                 evidence.extend(anchor(item) for item in supports if anchor(item))
     if evidence:
+        if any(r.get('binding') == 'model_form_synthesis' for r in refs):
+            return result('derived_draft', evidence, ('model_summary_with_exact_source_quotes',))
         if any(r.get('binding')=='intake_contract_date_default' or
                (r.get('binding')=='batch_engagement_intake' and actual_key=='立案审批日期') for r in refs):
             return result('convention_default',evidence,('law_office_intake_only_not_approval_or_court_filing',))

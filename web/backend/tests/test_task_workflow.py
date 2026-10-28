@@ -358,6 +358,25 @@ async def test_saved_edit_bumps_revision_and_old_confirmation_is_rejected(upload
 
 
 @pytest.mark.asyncio
+async def test_editing_closure_does_not_overwrite_independent_outcome(upload_context, monkeypatch):
+    ctx=upload_context
+    wire_storage(ctx,monkeypatch)
+    isolate_assembly(monkeypatch)
+    original={'委托人':'虚构甲','结案小结':'原办理过程','审（办）结果':'独立审办结果'}
+    async with ctx.sessions() as session:
+        task=ArchiveTask(case_id='case-a',status=TaskStatus.awaiting_review,
+                         fields=original,catalog_status=[],revision=1)
+        session.add(task);await session.commit();task_id=task.id
+    work=task_work_dir('org-a','case-a',task_id)
+    save_snapshot(work,fixture_analysis('fictional-not-read.pdf',original),base_name='fictional')
+    response=await ctx.client.patch(f'/api/tasks/{task_id}/fields',json={'fields':{'结案小结':'人工修改办理过程'}})
+    assert response.status_code==200, response.text
+    fields=response.json()['fields']
+    assert fields['结案小结']=='人工修改办理过程'
+    assert fields['审（办）结果']=='独立审办结果'
+
+
+@pytest.mark.asyncio
 async def test_field_edit_resolves_matching_conflict_and_preserves_metadata(upload_context, monkeypatch):
     ctx = upload_context
     wire_storage(ctx, monkeypatch)

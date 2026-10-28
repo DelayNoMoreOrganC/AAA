@@ -20,12 +20,19 @@ def supporting_refs(ref, fields, source_manifest):
     """
     if not isinstance(ref, dict):
         return None
-    if ref.get('binding') == 'batch_engagement_intake':
+    if ref.get('binding') == 'model_form_synthesis':
+        module = load('form_synthesis')
+        if not module.scope_supported(fields, source_manifest):
+            return None
+        supports = module.current_support(ref, fields)
+    elif ref.get('binding') == 'batch_engagement_intake':
         supports=load('engagement_intake').current_support(ref,fields)
         if supports is None or not load('engagement_intake').scope_supported(fields,source_manifest):return None
         # Continue through the common per-source scope validation below.
     elif ref.get('binding') == 'complaint_intake_excerpt':
         supports = load('complaint_brief').current_support(ref, fields)
+    elif ref.get('binding') == 'business_intake_excerpt':
+        supports = load('business_intake').current_support(ref, fields)
     elif ref.get('binding') == 'intake_contract_date_default':
         supports = load('intake_contract_date').current_support(ref, fields)
         # New materials may contain another engagement or an amendment. The

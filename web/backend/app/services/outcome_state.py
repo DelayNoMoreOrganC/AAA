@@ -52,6 +52,11 @@ def _has_current_result(fields, manual, manifest, issues, case_type=None, resolv
         for ref in _refs(fields, key):
             if not isinstance(ref, dict):
                 continue
+            if ref.get('method') == 'model_form_synthesis':
+                from .evidence_links import supporting_refs
+                if supporting_refs(ref, fields, manifest) is not None:
+                    return True
+                continue
             count = scope.get(_path(ref.get("source_path")))
             if (ref.get("method") in _METHODS and ref.get("value") == value and _text(ref.get("quote"))
                     and count is not None and type(ref.get("page")) is int and 1 <= ref["page"] <= count):

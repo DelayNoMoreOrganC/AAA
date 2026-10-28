@@ -1,0 +1,1828 @@
+[
+  {
+    "field": "案件类别",
+    "template": "立案审批表",
+    "mode": "configured",
+    "instruction": "使用用户选定的业务类别，不从收费或当事人数量猜测。",
+    "max_chars": 12,
+    "position": {
+      "row": 1,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "合同号",
+    "template": "立案审批表",
+    "mode": "reserved_blank",
+    "instruction": "内部合同号统一留空，不以法院案号或银行编号替代。",
+    "max_chars": 45,
+    "position": {
+      "row": 1,
+      "cell": 4
+    },
+    "source_priority": [
+      "intake_approval",
+      "contract"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人",
+    "template": "立案审批表",
+    "mode": "literal",
+    "instruction": "以委托合同、授权材料确定实际委托方，列全共同委托人；签约家属不自动等于被告人。",
+    "max_chars": 60,
+    "position": {
+      "row": 2,
+      "cell": 2
+    },
+    "source_priority": [
+      "contract",
+      "poa",
+      "intake_approval"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "当事人",
+    "template": "立案审批表",
+    "mode": "literal",
+    "instruction": "取实际接受本案代理或服务的主体；刑事被追诉人、非诉服务对象与签约人分别判断。",
+    "max_chars": 40,
+    "position": {
+      "row": 2,
+      "cell": 4
+    },
+    "source_priority": [
+      "poa",
+      "contract",
+      "complaint",
+      "indictment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人电话",
+    "template": "立案审批表",
+    "mode": "literal",
+    "instruction": "只取明确属于委托人的联系电话，保留多个委托人的归属；不取律师、法院或对方电话。",
+    "max_chars": 32,
+    "position": {
+      "row": 3,
+      "cell": 2
+    },
+    "source_priority": [
+      "contract",
+      "intake_approval",
+      "client_talk"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "传真",
+    "template": "立案审批表",
+    "mode": "literal",
+    "instruction": "只取明确委托方传真；空白不填无，不用电话替代。",
+    "max_chars": 32,
+    "position": {
+      "row": 3,
+      "cell": 4
+    },
+    "source_priority": [
+      "contract",
+      "intake_approval"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "收费标准",
+    "template": "立案审批表",
+    "mode": "literal",
+    "instruction": "以本案委托合同及补充条款为依据，保留固定额/费率、基数、阶段、周期、条件和另行收费范围；不等于已收或结算。 有明确依据才填写；缺失、歧义、冲突或不能准确简述时留空，不强制用户补填。",
+    "max_chars": 50,
+    "position": {
+      "row": 4,
+      "cell": 2
+    },
+    "source_priority": [
+      "contract",
+      "fee_notice",
+      "intake_approval"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "地址",
+    "template": "立案审批表",
+    "mode": "literal",
+    "instruction": "取明确属于委托方的联系地址；不将送达代理人的地址自动当住所。",
+    "max_chars": 65,
+    "position": {
+      "row": 4,
+      "cell": 4
+    },
+    "source_priority": [
+      "contract",
+      "intake_approval",
+      "complaint",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "对方当事人",
+    "template": "立案审批表",
+    "mode": "literal",
+    "instruction": "结合本所代理立场及文书角色确定对方，保留完整名单；非对抗非诉事项不得制造对方。",
+    "max_chars": 100,
+    "position": {
+      "row": 5,
+      "cell": 2
+    },
+    "source_priority": [
+      "complaint",
+      "indictment",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "案情简介",
+    "template": "立案审批表",
+    "mode": "synthesis",
+    "instruction": "站在接案时写争议事实、主要诉求或受托服务目的，不能只有姓名案号。民事行政从诉状提炼法律关系、争议经过、诉求，不写后来的裁判执行。刑事写涉嫌/被指控事项、委托辩护阶段，不预判有罪。非诉写服务对象、具体目的及范围；顾问写单位、服务期间和主要范围，不把全部合同义务说成已履行。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+    "max_chars": 280,
+    "position": {
+      "row": 6,
+      "cell": 1
+    },
+    "source_priority": [
+      "complaint",
+      "indictment",
+      "contract",
+      "client_talk"
+    ],
+    "writing": {
+      "max_chars": 280,
+      "instruction": "站在接案时写争议事实、主要诉求或受托服务目的，不能只有姓名案号。民事行政从诉状提炼法律关系、争议经过、诉求，不写后来的裁判执行。刑事写涉嫌/被指控事项、委托辩护阶段，不预判有罪。非诉写服务对象、具体目的及范围；顾问写单位、服务期间和主要范围，不把全部合同义务说成已履行。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+      "content_components": [],
+      "source_priority": [
+        "complaint",
+        "indictment",
+        "contract",
+        "client_talk"
+      ],
+      "missing_policy": "有据部分先写；逐项缺口放missing。不得因为一个金额或日期不清而清空整个栏目。",
+      "compression_order": "删重复身份、冗长案号、地址、逐项计算和套话；保留主体、阶段、主要行为、条件及结果。不得截断句子或删除共同当事人。"
+    },
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "立案审批日期",
+    "template": "立案审批表",
+    "mode": "derived",
+    "instruction": "原审批表存在则保留；缺失才按已核实本案委托合同签订日默认，标注内部约定；不证明审批已完成。 有明确依据才填写；缺失、歧义、冲突或不能准确简述时留空，不强制用户补填。",
+    "max_chars": 24,
+    "position": {
+      "row": 9,
+      "cell": 1
+    },
+    "source_priority": [
+      "intake_approval",
+      "contract"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "案件类别",
+    "template": "档案卷宗",
+    "mode": "configured",
+    "instruction": "使用用户选定的业务类别，不从收费或当事人数量猜测。",
+    "max_chars": 12,
+    "position": {
+      "row": 1,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "合同号",
+    "template": "档案卷宗",
+    "mode": "reserved_blank",
+    "instruction": "内部合同号统一留空，不以法院案号或银行编号替代。",
+    "max_chars": 45,
+    "position": {
+      "row": 1,
+      "cell": 4
+    },
+    "source_priority": [
+      "intake_approval",
+      "contract"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "承办律师",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "须有本所指派或委托关系，列实际承办人；不采对方律师或仅出现的署名。",
+    "max_chars": 70,
+    "position": {
+      "row": 2,
+      "cell": 2
+    },
+    "source_priority": [
+      "poa",
+      "contract",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "以委托合同、授权材料确定实际委托方，列全共同委托人；签约家属不自动等于被告人。",
+    "max_chars": 110,
+    "position": {
+      "row": 3,
+      "cell": 2
+    },
+    "source_priority": [
+      "contract",
+      "poa",
+      "intake_approval"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "当事人",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "取实际接受本案代理或服务的主体；刑事被追诉人、非诉服务对象与签约人分别判断。",
+    "max_chars": 110,
+    "position": {
+      "row": 4,
+      "cell": 2
+    },
+    "source_priority": [
+      "poa",
+      "contract",
+      "complaint",
+      "indictment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "对方当事人",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "结合本所代理立场及文书角色确定对方，保留完整名单；非对抗非诉事项不得制造对方。",
+    "max_chars": 110,
+    "position": {
+      "row": 5,
+      "cell": 2
+    },
+    "source_priority": [
+      "complaint",
+      "indictment",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "案由",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "民事按诉状/裁判的争议性质，刑事区分指控罪名与裁判认定，非诉顾问用实际事项名称。",
+    "max_chars": 200,
+    "position": {
+      "row": 6,
+      "cell": 2
+    },
+    "source_priority": [
+      "complaint",
+      "indictment",
+      "contract",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "收案日期",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "律所接案日期须有明确依据，不取法院立案、起诉或裁判日期。 有明确依据才填写；缺失、歧义、冲突或不能准确简述时留空，不强制用户补填。",
+    "max_chars": 24,
+    "position": {
+      "row": 7,
+      "cell": 2
+    },
+    "source_priority": [
+      "intake_approval",
+      "work_record"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "结案日期",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "取明确律所结案记录，不用判决、公证、终本日期代替，不默认今天。 有明确依据才填写；缺失、歧义、冲突或不能准确简述时留空，不强制用户补填。",
+    "max_chars": 24,
+    "position": {
+      "row": 7,
+      "cell": 4
+    },
+    "source_priority": [
+      "closure_report",
+      "work_record"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "审理法院",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "取对应当前程序法院全称，区分原审、上诉及执行法院。",
+    "max_chars": 55,
+    "position": {
+      "row": 8,
+      "cell": 2
+    },
+    "source_priority": [
+      "judgment",
+      "ruling",
+      "court_notice"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "审级",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "取已实际进入的司法程序，不将委托范围的一审/二审或发回重审误当现阶段。",
+    "max_chars": 18,
+    "position": {
+      "row": 8,
+      "cell": 4
+    },
+    "source_priority": [
+      "judgment",
+      "ruling",
+      "execution"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "法院收案号",
+    "template": "档案卷宗",
+    "mode": "literal",
+    "instruction": "保留当前文书的审判案号及阶段依据，多审级各有归属，不把最后出现的引用案号当当前案号。",
+    "max_chars": 100,
+    "position": {
+      "row": 9,
+      "cell": 2
+    },
+    "source_priority": [
+      "judgment",
+      "ruling",
+      "court_notice"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "审（办）结果",
+    "template": "档案卷宗",
+    "mode": "synthesis",
+    "instruction": "概括关键程序变化及截至材料日期的处理结果，突出结果而非照抄主文。多审级区分原审、撤销发回、重审、改判；裁定驳回起诉不等于实体败诉。执行区分申请、措施、成交、分配、实际回款、终本与终结。非诉写实际完成事项及成果，顾问写有据服务和协议状态。结果不完整时写已知进展并说明未见最终结果依据，不宣称圆满完成。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+    "max_chars": 340,
+    "position": {
+      "row": 10,
+      "cell": 2
+    },
+    "source_priority": [
+      "judgment",
+      "ruling",
+      "mediation",
+      "execution",
+      "agreement_status",
+      "legal_work",
+      "work_record"
+    ],
+    "writing": {
+      "max_chars": 340,
+      "instruction": "概括关键程序变化及截至材料日期的处理结果，突出结果而非照抄主文。多审级区分原审、撤销发回、重审、改判；裁定驳回起诉不等于实体败诉。执行区分申请、措施、成交、分配、实际回款、终本与终结。非诉写实际完成事项及成果，顾问写有据服务和协议状态。结果不完整时写已知进展并说明未见最终结果依据，不宣称圆满完成。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+      "content_components": [],
+      "source_priority": [
+        "judgment",
+        "ruling",
+        "mediation",
+        "execution",
+        "agreement_status",
+        "legal_work",
+        "work_record"
+      ],
+      "missing_policy": "有据部分先写；逐项缺口放missing。不得因为一个金额或日期不清而清空整个栏目。",
+      "compression_order": "删重复身份、冗长案号、地址、逐项计算和套话；保留主体、阶段、主要行为、条件及结果。不得截断句子或删除共同当事人。"
+    },
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "归档日期",
+    "template": "档案卷宗",
+    "mode": "system",
+    "instruction": "仅由实际归档操作产生，草稿不得伪造已归档日期。",
+    "max_chars": 24,
+    "position": {
+      "row": 11,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "立卷人",
+    "template": "档案卷宗",
+    "mode": "configured",
+    "instruction": "取当前经确认的立卷人设置，不用委托人或模型署名。",
+    "max_chars": 30,
+    "position": {
+      "row": 12,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "__volume_pages",
+    "template": "档案卷宗",
+    "mode": "system",
+    "instruction": "由最终合卷实际页数计算，不从模型或旧卷封面抄取。",
+    "max_chars": 12,
+    "position": {
+      "row": 12,
+      "cell": 4
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "档案号",
+    "template": "档案卷宗",
+    "mode": "configured",
+    "instruction": "按律所已设置的编号规则或人工值，禁止模型编造。",
+    "max_chars": 40,
+    "position": {
+      "row": 13,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "保存期限",
+    "template": "档案卷宗",
+    "mode": "configured",
+    "instruction": "按已确认适用规则或人工值，不从历史范例推定现行要求。",
+    "max_chars": 16,
+    "position": {
+      "row": 13,
+      "cell": 4
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "案件类别",
+    "template": "非诉封面",
+    "mode": "configured",
+    "instruction": "使用用户选定的业务类别，不从收费或当事人数量猜测。",
+    "max_chars": 12,
+    "position": {
+      "row": 1,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "合同号",
+    "template": "非诉封面",
+    "mode": "reserved_blank",
+    "instruction": "内部合同号统一留空，不以法院案号或银行编号替代。",
+    "max_chars": 45,
+    "position": {
+      "row": 1,
+      "cell": 4
+    },
+    "source_priority": [
+      "intake_approval",
+      "contract"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "承办律师",
+    "template": "非诉封面",
+    "mode": "literal",
+    "instruction": "须有本所指派或委托关系，列实际承办人；不采对方律师或仅出现的署名。",
+    "max_chars": 70,
+    "position": {
+      "row": 2,
+      "cell": 2
+    },
+    "source_priority": [
+      "poa",
+      "contract",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人",
+    "template": "非诉封面",
+    "mode": "literal",
+    "instruction": "以委托合同、授权材料确定实际委托方，列全共同委托人；签约家属不自动等于被告人。",
+    "max_chars": 110,
+    "position": {
+      "row": 3,
+      "cell": 2
+    },
+    "source_priority": [
+      "contract",
+      "poa",
+      "intake_approval"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "当事人",
+    "template": "非诉封面",
+    "mode": "literal",
+    "instruction": "取实际接受本案代理或服务的主体；刑事被追诉人、非诉服务对象与签约人分别判断。",
+    "max_chars": 110,
+    "position": {
+      "row": 4,
+      "cell": 2
+    },
+    "source_priority": [
+      "poa",
+      "contract",
+      "complaint",
+      "indictment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "对方当事人",
+    "template": "非诉封面",
+    "mode": "literal",
+    "instruction": "结合本所代理立场及文书角色确定对方，保留完整名单；非对抗非诉事项不得制造对方。",
+    "max_chars": 110,
+    "position": {
+      "row": 5,
+      "cell": 2
+    },
+    "source_priority": [
+      "complaint",
+      "indictment",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "案由",
+    "template": "非诉封面",
+    "mode": "literal",
+    "instruction": "民事按诉状/裁判的争议性质，刑事区分指控罪名与裁判认定，非诉顾问用实际事项名称。",
+    "max_chars": 200,
+    "position": {
+      "row": 6,
+      "cell": 2
+    },
+    "source_priority": [
+      "complaint",
+      "indictment",
+      "contract",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "收案日期",
+    "template": "非诉封面",
+    "mode": "literal",
+    "instruction": "律所接案日期须有明确依据，不取法院立案、起诉或裁判日期。 有明确依据才填写；缺失、歧义、冲突或不能准确简述时留空，不强制用户补填。",
+    "max_chars": 24,
+    "position": {
+      "row": 7,
+      "cell": 2
+    },
+    "source_priority": [
+      "intake_approval",
+      "work_record"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "结案日期",
+    "template": "非诉封面",
+    "mode": "literal",
+    "instruction": "取明确律所结案记录，不用判决、公证、终本日期代替，不默认今天。 有明确依据才填写；缺失、歧义、冲突或不能准确简述时留空，不强制用户补填。",
+    "max_chars": 24,
+    "position": {
+      "row": 8,
+      "cell": 2
+    },
+    "source_priority": [
+      "closure_report",
+      "work_record"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "审（办）结果",
+    "template": "非诉封面",
+    "mode": "synthesis",
+    "instruction": "概括关键程序变化及截至材料日期的处理结果，突出结果而非照抄主文。多审级区分原审、撤销发回、重审、改判；裁定驳回起诉不等于实体败诉。执行区分申请、措施、成交、分配、实际回款、终本与终结。非诉写实际完成事项及成果，顾问写有据服务和协议状态。结果不完整时写已知进展并说明未见最终结果依据，不宣称圆满完成。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+    "max_chars": 340,
+    "position": {
+      "row": 9,
+      "cell": 2
+    },
+    "source_priority": [
+      "judgment",
+      "ruling",
+      "mediation",
+      "execution",
+      "agreement_status",
+      "legal_work",
+      "work_record"
+    ],
+    "writing": {
+      "max_chars": 340,
+      "instruction": "概括关键程序变化及截至材料日期的处理结果，突出结果而非照抄主文。多审级区分原审、撤销发回、重审、改判；裁定驳回起诉不等于实体败诉。执行区分申请、措施、成交、分配、实际回款、终本与终结。非诉写实际完成事项及成果，顾问写有据服务和协议状态。结果不完整时写已知进展并说明未见最终结果依据，不宣称圆满完成。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+      "content_components": [],
+      "source_priority": [
+        "judgment",
+        "ruling",
+        "mediation",
+        "execution",
+        "agreement_status",
+        "legal_work",
+        "work_record"
+      ],
+      "missing_policy": "有据部分先写；逐项缺口放missing。不得因为一个金额或日期不清而清空整个栏目。",
+      "compression_order": "删重复身份、冗长案号、地址、逐项计算和套话；保留主体、阶段、主要行为、条件及结果。不得截断句子或删除共同当事人。"
+    },
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "归档日期",
+    "template": "非诉封面",
+    "mode": "system",
+    "instruction": "仅由实际归档操作产生，草稿不得伪造已归档日期。",
+    "max_chars": 24,
+    "position": {
+      "row": 10,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "立卷人",
+    "template": "非诉封面",
+    "mode": "configured",
+    "instruction": "取当前经确认的立卷人设置，不用委托人或模型署名。",
+    "max_chars": 30,
+    "position": {
+      "row": 11,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "__volume_pages",
+    "template": "非诉封面",
+    "mode": "system",
+    "instruction": "由最终合卷实际页数计算，不从模型或旧卷封面抄取。",
+    "max_chars": 12,
+    "position": {
+      "row": 11,
+      "cell": 4
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "档案号",
+    "template": "非诉封面",
+    "mode": "configured",
+    "instruction": "按律所已设置的编号规则或人工值，禁止模型编造。",
+    "max_chars": 40,
+    "position": {
+      "row": 12,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "保存期限",
+    "template": "非诉封面",
+    "mode": "configured",
+    "instruction": "按已确认适用规则或人工值，不从历史范例推定现行要求。",
+    "max_chars": 16,
+    "position": {
+      "row": 12,
+      "cell": 4
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "案件类别",
+    "template": "结案报告表",
+    "mode": "configured",
+    "instruction": "使用用户选定的业务类别，不从收费或当事人数量猜测。",
+    "max_chars": 24,
+    "position": {
+      "row": 1,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人",
+    "template": "结案报告表",
+    "mode": "literal",
+    "instruction": "以委托合同、授权材料确定实际委托方，列全共同委托人；签约家属不自动等于被告人。",
+    "max_chars": 110,
+    "position": {
+      "row": 2,
+      "cell": 2
+    },
+    "source_priority": [
+      "contract",
+      "poa",
+      "intake_approval"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "案件或项目名称",
+    "template": "结案报告表",
+    "mode": "synthesis",
+    "instruction": "民事按诉状原被告角色形成XXX诉XXX的案由纠纷，完整列共同当事人，不重复纠纷二字；行政按实际诉讼事项；刑事用被追诉人及被指控事项的中性名称，不因签约家属改换主体；非诉和顾问用实际服务项目名。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+    "max_chars": 110,
+    "position": {
+      "row": 3,
+      "cell": 2
+    },
+    "source_priority": [
+      "complaint",
+      "indictment",
+      "contract",
+      "judgment"
+    ],
+    "writing": {
+      "max_chars": 110,
+      "instruction": "民事按诉状原被告角色形成XXX诉XXX的案由纠纷，完整列共同当事人，不重复纠纷二字；行政按实际诉讼事项；刑事用被追诉人及被指控事项的中性名称，不因签约家属改换主体；非诉和顾问用实际服务项目名。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+      "content_components": [],
+      "source_priority": [
+        "complaint",
+        "indictment",
+        "contract",
+        "judgment"
+      ],
+      "missing_policy": "有据部分先写；逐项缺口放missing。不得因为一个金额或日期不清而清空整个栏目。",
+      "compression_order": "删重复身份、冗长案号、地址、逐项计算和套话；保留主体、阶段、主要行为、条件及结果。不得截断句子或删除共同当事人。"
+    },
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "结案小结",
+    "template": "结案报告表",
+    "mode": "synthesis",
+    "instruction": "组织为受托事项、实际办理工作、重要节点、结果及未完事项的连贯短文。重点回答律师实际做了什么，不能只复述裁判或照搬合同范围。按实际日期和程序关联梳理，不按PDF页序推定先后；多审级变化须保留。顾问从实际函件、审改文书和咨询记录归纳，非诉从具体法律工作与成果归纳。未见证据的出庭、沟通、回款、送达、满意或正式结案不能补写。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+    "max_chars": 320,
+    "position": {
+      "row": 4,
+      "cell": 2
+    },
+    "source_priority": [
+      "contract",
+      "legal_work",
+      "work_record",
+      "plea",
+      "agent_opinion",
+      "court_record",
+      "meeting_record",
+      "client_talk",
+      "judgment",
+      "ruling",
+      "mediation",
+      "execution",
+      "agreement_status"
+    ],
+    "writing": {
+      "max_chars": 320,
+      "instruction": "组织为受托事项、实际办理工作、重要节点、结果及未完事项的连贯短文。重点回答律师实际做了什么，不能只复述裁判或照搬合同范围。按实际日期和程序关联梳理，不按PDF页序推定先后；多审级变化须保留。顾问从实际函件、审改文书和咨询记录归纳，非诉从具体法律工作与成果归纳。未见证据的出庭、沟通、回款、送达、满意或正式结案不能补写。 材料覆盖和待核提示放在missing中，不将“材料未见”“无法核实”等系统诊断写进表格正文。",
+      "content_components": [],
+      "source_priority": [
+        "contract",
+        "legal_work",
+        "work_record",
+        "plea",
+        "agent_opinion",
+        "court_record",
+        "meeting_record",
+        "client_talk",
+        "judgment",
+        "ruling",
+        "mediation",
+        "execution",
+        "agreement_status"
+      ],
+      "missing_policy": "有据部分先写；逐项缺口放missing。不得因为一个金额或日期不清而清空整个栏目。",
+      "compression_order": "删重复身份、冗长案号、地址、逐项计算和套话；保留主体、阶段、主要行为、条件及结果。不得截断句子或删除共同当事人。"
+    },
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人对服务质量意见",
+    "template": "结案报告表",
+    "mode": "human",
+    "instruction": "保留实际客户反馈及来源；无反馈则待补，禁止生成满意、好评或代签意见。",
+    "max_chars": 320,
+    "position": {
+      "row": 5,
+      "cell": 2
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "应收业务费",
+    "template": "结案报告表",
+    "mode": "literal",
+    "instruction": "仅本案明确结算应收金额及币种；不从合同费率自行算出。",
+    "max_chars": 28,
+    "position": {
+      "row": 6,
+      "cell": 2
+    },
+    "source_priority": [
+      "fee_settlement",
+      "closure_report"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "已收业务费",
+    "template": "结案报告表",
+    "mode": "literal",
+    "instruction": "仅本案明确累计实收，发票或单笔付款不等于累计已收。",
+    "max_chars": 18,
+    "position": {
+      "row": 6,
+      "cell": 4
+    },
+    "source_priority": [
+      "fee_settlement",
+      "closure_report"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "尚欠业务费",
+    "template": "结案报告表",
+    "mode": "literal",
+    "instruction": "仅本案明确未收余额，空白不等于零，不自行相减。",
+    "max_chars": 28,
+    "position": {
+      "row": 7,
+      "cell": 2
+    },
+    "source_priority": [
+      "fee_settlement",
+      "closure_report"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "应退业务费",
+    "template": "结案报告表",
+    "mode": "literal",
+    "instruction": "仅本案明确应退余额，不混为已退款。",
+    "max_chars": 18,
+    "position": {
+      "row": 7,
+      "cell": 4
+    },
+    "source_priority": [
+      "fee_settlement",
+      "closure_report"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "结案日期",
+    "template": "结案报告表",
+    "mode": "literal",
+    "instruction": "取明确律所结案记录，不用判决、公证、终本日期代替，不默认今天。 有明确依据才填写；缺失、歧义、冲突或不能准确简述时留空，不强制用户补填。",
+    "max_chars": 24,
+    "position": {
+      "row": 10,
+      "cell": 2
+    },
+    "source_priority": [
+      "closure_report",
+      "work_record"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "律师事务所",
+    "template": "质量监督卡",
+    "mode": "literal",
+    "instruction": "取本案受托律所全称，不取合同示例、对方律所或仅引用单位。",
+    "max_chars": 100,
+    "position": {
+      "row": 1,
+      "cell": 2
+    },
+    "source_priority": [
+      "contract",
+      "poa"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "合同号",
+    "template": "质量监督卡",
+    "mode": "reserved_blank",
+    "instruction": "内部合同号统一留空，不以法院案号或银行编号替代。",
+    "max_chars": 65,
+    "position": {
+      "row": 2,
+      "cell": 2
+    },
+    "source_priority": [
+      "intake_approval",
+      "contract"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "承办律师",
+    "template": "质量监督卡",
+    "mode": "literal",
+    "instruction": "须有本所指派或委托关系，列实际承办人；不采对方律师或仅出现的署名。",
+    "max_chars": 32,
+    "position": {
+      "row": 2,
+      "cell": 4
+    },
+    "source_priority": [
+      "poa",
+      "contract",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人联系地址及电话",
+    "template": "质量监督卡",
+    "mode": "derived",
+    "instruction": "组合已核实且同一委托人的地址和电话，不拼接不同主体联系方式。",
+    "max_chars": 90,
+    "position": {
+      "row": 3,
+      "cell": 2
+    },
+    "source_priority": [
+      "accepted_client_address",
+      "accepted_client_phone"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "合同号",
+    "template": "送达材料清单",
+    "mode": "reserved_blank",
+    "instruction": "内部合同号统一留空，不以法院案号或银行编号替代。",
+    "max_chars": 80,
+    "position": {
+      "region": "抬头或清单行"
+    },
+    "source_priority": [
+      "intake_approval",
+      "contract"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人",
+    "template": "送达材料清单",
+    "mode": "literal",
+    "instruction": "以委托合同、授权材料确定实际委托方，列全共同委托人；签约家属不自动等于被告人。",
+    "max_chars": 45,
+    "position": {
+      "region": "抬头或清单行"
+    },
+    "source_priority": [
+      "contract",
+      "poa",
+      "intake_approval"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "承办律师",
+    "template": "送达材料清单",
+    "mode": "literal",
+    "instruction": "须有本所指派或委托关系，列实际承办人；不采对方律师或仅出现的署名。",
+    "max_chars": 25,
+    "position": {
+      "region": "抬头或清单行"
+    },
+    "source_priority": [
+      "poa",
+      "contract",
+      "judgment"
+    ],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "送达材料名称",
+    "template": "送达材料清单",
+    "mode": "derived",
+    "instruction": "当前版本按已识别法院文书逐项生成名称，续页合为同一文书；最多18行、每行名称不超过26字。清单不证明实际送达。其他交付材料可手动补充。",
+    "max_chars": 26,
+    "position": {
+      "region": "抬头或清单行"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "送达材料页数",
+    "template": "送达材料清单",
+    "mode": "system",
+    "instruction": "按已定位文书实际页段计算，不用份数或模型估计值替代。",
+    "max_chars": null,
+    "position": {
+      "region": "抬头或清单行"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "承办律师意见",
+    "template": "立案审批表",
+    "mode": "human",
+    "instruction": "由承办律师填写或保留原件，不生成同意承办或签名。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "主任审批意见",
+    "template": "立案审批表",
+    "mode": "human",
+    "instruction": "由实际审批人填写或保留原件，禁止自动批准。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "承办律师意见",
+    "template": "结案报告表",
+    "mode": "human",
+    "instruction": "由承办律师填写或保留原件，不生成同意承办或签名。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "主任审批意见",
+    "template": "结案报告表",
+    "mode": "human",
+    "instruction": "由实际审批人填写或保留原件，禁止自动批准。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "质量监督选择项1—9",
+    "template": "质量监督卡",
+    "mode": "human",
+    "instruction": "仅依据实际记录或人工填写，不自动推定。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "客户意见和建议",
+    "template": "质量监督卡",
+    "mode": "human",
+    "instruction": "仅依据实际记录或人工填写，不自动推定。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "委托人签名",
+    "template": "质量监督卡",
+    "mode": "human",
+    "instruction": "仅依据实际记录或人工填写，不自动推定。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "签收日期",
+    "template": "质量监督卡",
+    "mode": "human",
+    "instruction": "仅依据实际记录或人工填写，不自动推定。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "送达时间",
+    "template": "送达材料清单",
+    "mode": "human",
+    "instruction": "仅实际送达记录或人工填写，不取生成日期或文书落款日期代替。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "送达人",
+    "template": "送达材料清单",
+    "mode": "human",
+    "instruction": "仅实际送达记录或人工填写，不默认承办律师已经送达。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "接收人",
+    "template": "送达材料清单",
+    "mode": "human",
+    "instruction": "仅实际签收记录或人工填写，不默认委托人已经接收。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "签收备注",
+    "template": "送达材料清单",
+    "mode": "human",
+    "instruction": "仅依据实际记录或人工填写，不自动推定。",
+    "max_chars": null,
+    "position": {
+      "region": "原表手填区域"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "备注",
+    "template": "立案审批表",
+    "mode": "human",
+    "instruction": "人工备注优先；只有收费标准已获支持并采用简写时，系统可注明完整收费条件见卷内合同。",
+    "max_chars": null,
+    "position": {
+      "region": "原表备注栏"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "备注",
+    "template": "档案卷宗",
+    "mode": "human",
+    "instruction": "仅保留明确备注，不自动添加无依据的合规或完成声明。",
+    "max_chars": null,
+    "position": {
+      "region": "原表备注栏"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "备注",
+    "template": "非诉封面",
+    "mode": "human",
+    "instruction": "仅保留明确备注，不自动添加无依据的合规或完成声明。",
+    "max_chars": null,
+    "position": {
+      "region": "原表备注栏"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  },
+  {
+    "field": "备注",
+    "template": "结案报告表",
+    "mode": "human",
+    "instruction": "仅保留明确备注，不自动添加无依据的合规或完成声明。",
+    "max_chars": null,
+    "position": {
+      "region": "原表备注栏"
+    },
+    "source_priority": [],
+    "writing": null,
+    "format": {
+      "font": "宋体",
+      "size_pt": 12,
+      "overflow": "不得缩小字体、扩框或截断；保留原值并列出容量问题"
+    },
+    "conflict": "保留原件及人工决定；主体或来源冲突集中核对，不以最后出现者覆盖",
+    "empty": "先查已提供来源及映射；签署、评价、审批不得代填"
+  }
+]

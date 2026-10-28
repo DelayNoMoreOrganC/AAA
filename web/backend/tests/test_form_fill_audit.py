@@ -5,6 +5,25 @@ import pytest
 from app.services.form_fill_audit import build_form_fill_audit, render_form_fill_audit
 
 
+def test_blank_diagnosis_separates_system_failure_human_and_configuration():
+    fields={'案件类别':'民事','_form_synthesis_status':{'fields':{'案情简介':'provider_failed'}}}
+    rows=build_form_fill_audit(fields,[])
+    assert row(rows,'立案审批表','案情简介')['gap']['code']=='generation_pending'
+    assert row(rows,'立案审批表','主任审批意见')['gap']['code']=='human_record'
+    assert row(rows,'档案卷宗','档案号')['gap']['code']=='configuration'
+    assert row(rows,'档案卷宗','卷内页数')['gap']['code']=='output_pending'
+
+
+def test_verified_candidate_blank_is_system_repair_not_missing_client_material(tmp_path):
+    path=str(tmp_path/'source.pdf')
+    fields={'案件类别':'民事','委托人电话':'','_provenance':{'委托人电话':[
+        {'field':'委托人电话','value':'0757-12345678','quote':'委托人电话：0757-12345678',
+         'source_path':path,'page':1,'method':'visual_agent_local_evidence'}]}}
+    rows=build_form_fill_audit(fields,[{'path':path,'file_id':'one','filename':'虚构.pdf','pages':1}])
+    assert row(rows,'立案审批表','委托人电话')['gap']['code']=='source_candidate_not_applied'
+    assert fields['委托人电话']==''  # An audit does not alter user data.
+
+
 def row(rows, template, field):
     return next(item for item in rows if item['template'] == template and item['field'] == field)
 

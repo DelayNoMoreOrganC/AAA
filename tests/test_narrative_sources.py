@@ -30,3 +30,20 @@ def test_cancellation_stops_before_read():
     with pytest.raises(RuntimeError,match='cancelled'):
         complete_narrative_pages(p,[unit('complaint',1,2)],set(),guard=stop)
     assert p.calls==[]
+
+@pytest.mark.parametrize('category,kind', [('nonlit','legal_work'),('counsel','work_record'),('criminal','indictment')])
+def test_business_sources_are_read_inside_existing_budget(category,kind):
+    p=Pages();seen=set()
+    metrics=complete_narrative_pages(p,[unit(kind,1,2)],seen,budget=2,case_type=category)
+    assert p.calls==['p1','p2'] and metrics['completed_documents']==1
+
+def test_long_or_empty_sources_are_explicitly_incomplete():
+    p=Pages();p.read=lambda k:''
+    metrics=complete_narrative_pages(p,[unit('legal_work',1,2)],set(),budget=2,case_type='nonlit')
+    assert metrics['completed_documents']==0
+    assert metrics['incomplete_reasons'][0]['reason']=='empty_or_failed_read'
+
+def test_nonfinite_confidence_is_not_read():
+    p=Pages()
+    complete_narrative_pages(p,[unit('work_record',1,2,float('nan'))],set())
+    assert p.calls==[]

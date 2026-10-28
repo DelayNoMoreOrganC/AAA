@@ -79,8 +79,9 @@ def test_archive_metadata_and_fax_reach_editable_original_cells_for_all_five_cat
 
 
 def test_identity_cells_remove_handwriting_indent_without_moving_frames(tmp_path):
-    output = service.fill_original_docx("档案卷宗", {"收案日期":"2026年3月1日",
-        "结案日期":"2026年6月30日"}, "", tmp_path / "form.docx")
+    fields={"收案日期":"2026年3月1日","结案日期":"2026年6月30日"}
+    fields['_provenance']={k:[{'method':'human','value':v}] for k,v in fields.items()}
+    output = service.fill_original_docx("档案卷宗", fields, "", tmp_path / "form.docx")
     with ZipFile(output) as package:root=ET.fromstring(package.read("word/document.xml"))
     for text in ("2026年3月1日", "2026年6月30日"):
         cell=root.xpath("//w:tc[.//w:t[text()=$value]]",namespaces=service.NS,value=text)[0]

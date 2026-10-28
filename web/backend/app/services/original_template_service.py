@@ -57,7 +57,7 @@ SLOTS = {
   ('案件类别',0,1,24,''),('委托人',1,1,110,''),('案件或项目名称',2,1,110,''),
   ('结案小结',3,1,320,''),('委托人对服务质量意见',4,1,320,''),('应收业务费',5,1,28,''),
   ('已收业务费',5,3,18,''),('尚欠业务费',6,1,28,''),('应退业务费',6,3,18,''),('结案日期',9,1,24,'')],
- '质量监督卡': [('律师事务所',0,1,100,''),('法院收案号',1,1,65,''),('承办律师',1,3,32,''),
+ '质量监督卡': [('律师事务所',0,1,100,''),('合同号',1,1,65,''),('承办律师',1,3,32,''),
   ('委托人联系地址及电话',2,1,90,'')],
 }
 
@@ -310,6 +310,8 @@ def approval_custom_value(fields, row):
         return str(custom[key] or ''), False
     if row == 9:
         from ..core.v4_bridge import load
+        fee=load('form_cell_contracts').optional_output('收费标准',(fields or {}).get('收费标准',''),fields or {})
+        if fee and not fee['value']:return '',False
         presentation=load('fee_display').current(fields)
         if presentation:return presentation['note'], True
         note=load('source_fee_notice').reference_note(fields)
@@ -320,6 +322,55 @@ def approval_custom_value(fields, row):
                 note='风险代理费的比例、条件及上限详卷内委托代理合同第四条。'
         return note, bool(note)
     return '', False
+
+
+def _explicit_body_grid(root, key):
+    """Resolve inherited line-grid spacing without changing cells or fonts.
+
+    These templates use a 15.6pt grid. LibreOffice rounds automatic line boxes
+    up to TWO grid lines where WPS uses one, pushing the notice onto page 3.
+    Keep the original text/blank signing paragraphs and explicit heading bands.
+    Only out-of-table explanatory text is normalized; no form frame is moved.
+    """
+    # WPS resolves the legacy *_GB2312 aliases to installed FangSong/KaiTi.
+    # LibreOffice otherwise substitutes wider YaHei and changes line wraps.
+    for fonts in root.xpath('//w:rFonts',namespaces=NS):
+        for attr,value in list(fonts.attrib.items()):
+            if value in ('仿宋_GB2312','楷体_GB2312'):
+                fonts.set(attr,{'仿宋_GB2312':'仿宋','楷体_GB2312':'楷体'}[value])
+    paragraphs=root.find(_tag('body')).findall(_tag('p'))
+    active=False
+    for paragraph in paragraphs:
+        text=''.join(paragraph.xpath('.//w:t/text()',namespaces=NS))
+        if key=='质量监督卡' and re.sub(r'\s+','',text)=='委托人须知':
+            active=True
+            previous=paragraph.getprevious()
+            # A separate empty paragraph containing a page-break leaves an
+            # extra blank band in LO. Attach that same break to the title.
+            if (previous is not None and previous.tag==_tag('p')
+                    and not ''.join(previous.xpath('.//w:t/text()',namespaces=NS)).strip()
+                    and not previous.xpath('.//w:t|.//w:sectPr|.//w:drawing|.//w:object|.//w:fldChar|.//w:instrText|.//w:bookmarkStart',namespaces=NS)):
+                props=paragraph.find(_tag('pPr'))
+                if props is None:props=ET.Element(_tag('pPr'));paragraph.insert(0,props)
+                br=ET.SubElement(props,_tag('pageBreakBefore'));br.set(_tag('val'),'1')
+                previous.getparent().remove(previous)
+        selected=(key=='质量监督卡' and active) or (key=='送达材料清单' and text.startswith('律师在接办案件中填写'))
+        if not selected:continue
+        props=paragraph.find(_tag('pPr'))
+        if props is None:props=ET.Element(_tag('pPr'));paragraph.insert(0,props)
+        spacing=props.find(_tag('spacing'))
+        if spacing is not None and spacing.get(_tag('lineRule'))=='exact':
+            # The empty separator after the notice's revision heading used a
+            # 28pt title strut. Keep one normal blank line (15.6pt), preserving
+            # all later signature/date blanks and every printed character.
+            if key=='质量监督卡' and active and not text.strip() and spacing.get(_tag('line'))=='560':
+                spacing.set(_tag('line'),'312')
+            continue
+        if spacing is None:spacing=ET.SubElement(props,_tag('spacing'))
+        for k,v in (('line','312'),('lineRule','exact'),('before','0'),('after','0')):spacing.set(_tag(k),v)
+        grid=props.find(_tag('snapToGrid'))
+        if grid is None:grid=ET.SubElement(props,_tag('snapToGrid'))
+        grid.set(_tag('val'),'0')
 
 
 @_with_template_context
@@ -366,10 +417,19 @@ def fill_original_docx(name, fields, organization_name, output_path, *, derived_
                 _fill(cells[1],lines[index] if index<len(lines) else '',permission_id=200+index)
                 _fill(cells[2],values.get(f'__delivery_pages_{index}',''),permission_id=250+index)
             paragraphs=root.find(_tag('body')).findall(_tag('p'))
-            for field,limit in (('法院收案号',80),('委托人',45),('承办律师',25)):
+            for field,limit in (('合同号',80),('委托人',45),('承办律师',25)):
                 if len(values.get(field,''))>limit:raise OriginalTemplateError('overflow',[field])
-            _fill(paragraphs[1],values.get('法院收案号',''), '案号：', 230)
+            _fill(paragraphs[1],values.get('合同号',''), '案号：', 230)
             _fill_delivery_identity(paragraphs[2],values.get('委托人',''),values.get('承办律师',''))
+        # Converted templates can end with a bare paragraph after the firm
+        # credit. LibreOffice moves that empty paragraph to a second page.
+        # Remove only structurally empty trailing paragraphs, never content,
+        # paragraph properties, section breaks or the required post-table p.
+        body = root.find(_tag('body'))
+        tail = len(body) - 2 if body[-1].tag == _tag('sectPr') else len(body) - 1
+        while tail > 0 and body[tail].tag == _tag('p') and len(body[tail]) == 0 and not (body[tail].text or '').strip() and body[tail-1].tag == _tag('p'):
+            body.remove(body[tail]); tail -= 1
+        _explicit_body_grid(root,key)
         edited=ET.tostring(root,encoding='UTF-8',xml_declaration=True,standalone=True)
         if frame_signature(original)!=frame_signature(edited):raise OriginalTemplateError('frame')
         output=Path(output_path);output.parent.mkdir(parents=True,exist_ok=True)

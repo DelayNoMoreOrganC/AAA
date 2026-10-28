@@ -90,6 +90,12 @@ def extract_court_header_candidate(page_text, current_case_number):
     # Only whitespace at the page edge, not arbitrary text, may precede it.
     while index < min(2, len(physical)) and not physical[index][0].strip():
         index += 1
+    # Native PDF extraction can place a standalone printed page number before
+    # the court heading. Skip exactly one numeric line only when the next line
+    # is already a full court/title; never search past arbitrary body content.
+    if (index+1 < len(physical) and re.fullmatch(r'[1-9]\d{0,3}', _compact(physical[index][0]))
+            and (_court_name(_compact(physical[index+1][0])) or _TITLE.fullmatch(_compact(physical[index+1][0])))):
+        index += 1
     prefix_count = 0
     while index < len(physical) and _compact(physical[index][0]) in _PREFIXES and prefix_count < 2:
         index += 1

@@ -51,12 +51,22 @@ def recall_cached_source_facts(fields, provenance, conflicts, *, page_cache,
     if local_recall_context is None:
         from complaint_brief import collect
         collect(fields, page_cache=page_cache, allowed_sources=allowed_sources, document_units=document_units)
+        from business_intake import collect as collect_business_intake
+        collect_business_intake(fields, page_cache=page_cache, allowed_sources=allowed_sources, document_units=document_units)
     metrics = {"pages_checked": 0, "accepted_count": 0, "rejected_count": 0,
                "additional_page_reads": 0, "additional_model_requests": 0,
                "conflict_fields": [], "skipped_oversized_pages": 0}
     # Initial whole-case extraction only. Supplemental parent-context handling
     # retains its stricter dependency path until roster inheritance is verified.
     if local_recall_context is None:
+        from source_contract_roster import recall as recall_contract_header
+        metrics['accepted_count'] += recall_contract_header(fields,provenance,conflicts,
+            page_cache=page_cache,allowed_sources=allowed_sources,document_units=document_units,
+            manual_fields=manual_fields,method=method)
+        from source_contract_roster import recall_contacts
+        metrics['accepted_count'] += recall_contacts(fields,provenance,conflicts,
+            page_cache=page_cache,allowed_sources=allowed_sources,document_units=document_units,
+            manual_fields=manual_fields,method=method)
         from source_engagement_evidence import recall_poa_facts
         metrics['accepted_count'] += recall_poa_facts(fields,provenance,conflicts,
             page_cache=page_cache,allowed_sources=allowed_sources,manual_fields=manual_fields,
@@ -65,6 +75,10 @@ def recall_cached_source_facts(fields, provenance, conflicts, *, page_cache,
         metrics['accepted_count'] += recall_pleading_parties(fields, provenance, conflicts,
             page_cache=page_cache, allowed_sources=allowed_sources, document_units=document_units,
             manual_fields=manual_fields, method=method, fact_review=fact_review)
+        from source_contract_roster import recall_court_number
+        metrics['accepted_count'] += recall_court_number(fields,provenance,conflicts,
+            page_cache=page_cache,allowed_sources=allowed_sources,document_units=document_units,
+            manual_fields=manual_fields,method=method)
     from fee_settlement_evidence import recall as recall_settlement
     metrics['accepted_count'] += recall_settlement(fields, provenance, conflicts,
         page_cache=page_cache, allowed_sources=allowed_sources, manual_fields=manual_fields,
@@ -84,6 +98,22 @@ def recall_cached_source_facts(fields, provenance, conflicts, *, page_cache,
             eligible.add(field)
     def recall_court_details():
         if local_recall_context is None:
+            # A party obtained from a pleading must not prevent adding the
+            # same party's independently linked court roster. Contacts need
+            # that roster; a nonempty field alone is not a reason to skip it.
+            if (fields.get('当事人') and '当事人' not in manual_fields
+                    and not any(c.get('field') in ('当事人','委托人','案号') and not c.get('resolved') for c in conflicts)):
+                from source_party_evidence import link_client_court_party
+                linking={**fields,'_provenance':provenance,'_field_conflicts':conflicts}
+                old=provenance.get('当事人') or [];old=[old] if isinstance(old,dict) else old
+                for source in sorted(set(page_cache)&set(allowed_sources)):
+                    ref=link_client_court_party(page_cache[source],source,linking,
+                        page_cache=page_cache,allowed_sources=allowed_sources)
+                    if ref and _compact(ref['value'])==_compact(fields['当事人']):
+                        ref['method']=method
+                        if not any(r.get('binding')==ref.get('binding') and r.get('source_path')==source[0]
+                                   and r.get('page')==source[1] and r.get('value')==ref['value'] for r in old):old.append(ref)
+                provenance['当事人']=old
             from court_roster_details import recall_details
             metrics['accepted_count'] += recall_details(fields,provenance,conflicts,
                 page_cache=page_cache,allowed_sources=allowed_sources,manual_fields=manual_fields,

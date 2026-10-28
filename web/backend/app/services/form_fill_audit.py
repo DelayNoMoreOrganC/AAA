@@ -34,6 +34,56 @@ LABELS = {"source_supported": "原文支持", "derived_draft": "材料摘要",
           "human_confirmed": "人工填写或确认", "configured": "案件设置",
           "conflict": "存在冲突", "unverified": "依据待核验", "missing": "留空"}
 
+GAP_LABELS = {
+    'filled':'已有内容', 'human_blank':'人工保留空白', 'human_record':'实际签署或反馈',
+    'configuration':'律所设置', 'output_pending':'出卷时计算', 'conflict':'集中核对来源冲突',
+    'source_candidate_not_applied':'已有依据，系统待补填',
+    'generation_pending':'综合撰写待完成', 'source_review_needed':'已有候选，系统待核查',
+    'not_found_in_read_material':'已读材料暂未取得',
+    'intentional_blank':'按约定留空', 'optional_blank':'不确定则留空',
+}
+
+def gap_diagnosis(row, fields, manifest):
+    """Distinguish a mapping/extraction defect from a request for more material.
+
+    A retained candidate is not automatically trusted. Test the same source
+    assurance as actual filling; never adopt a candidate or overwrite a human.
+    """
+    output_policy=row.get('output_policy') or {}
+    if output_policy.get('code') in ('intentional_blank','optional_blank'):
+        code=output_policy['code']
+        return {'code':code,'label':GAP_LABELS[code],'action':'retain'}
+    from ..core.v4_bridge import load
+    from .field_assurance import field_assurance
+    policy=load('form_field_policy');key=policy.ALIASES.get(row['field'],row['field'])
+    rule=policy.policy(key);mode=rule[0] if rule else None
+    status=row['status'];value=row.get('value')
+    if status=='conflict':code='conflict'
+    elif value:code='filled'
+    elif status=='human_confirmed':code='human_blank'
+    elif mode=='human' or status=='manual_area':code='human_record'
+    elif mode=='configured':code='configuration'
+    elif mode=='system' or key=='卷内页数':code='output_pending'
+    else:
+        refs=(fields.get('_provenance') or {}).get(key) or []
+        refs=[refs] if isinstance(refs,dict) else refs
+        candidate=False
+        for ref in refs:
+            if not isinstance(ref,dict) or not ref.get('value') or ref.get('method')=='human':continue
+            candidate=True
+            probe=dict(fields,**{key:ref['value']})
+            check=field_assurance(key,ref['value'],probe,source_manifest=manifest)
+            if check['status']=='source_supported':
+                return {'code':'source_candidate_not_applied','label':GAP_LABELS['source_candidate_not_applied'],
+                        'action':'repair_before_requesting_material','anchors':check['anchors']}
+        generation=(fields.get('_form_synthesis_status') or {}).get('fields',{}).get(key)
+        if generation and generation!='generated':code='generation_pending'
+        elif candidate:code='source_review_needed'
+        else:code='not_found_in_read_material'
+    return {'code':code,'label':GAP_LABELS[code], 'action':
+        'system_review_first' if code in ('generation_pending','source_review_needed','not_found_in_read_material')
+        else 'retain' if code in ('filled','human_blank') else 'single_consolidated_review'}
+
 
 def build_form_fill_audit(fields, manifest, *, issues=(), derived_output=None):
     fields, derived_output = fields or {}, derived_output or {}
@@ -93,6 +143,9 @@ def build_form_fill_audit(fields, manifest, *, issues=(), derived_output=None):
                 "reason": reason, "sources": anchors,
                 "position": {"table": 1, "physical_row": row + 1, "physical_cell": cell + 1}
                     if row is not None else {"region": "清单抬头或文书名称行"}})
+            if entry.get('output_policy'):
+                rows[-1]['output_policy']=entry['output_policy']
+                if entry['output_policy'].get('reason'):rows[-1]['reason']=entry['output_policy']['reason']
         if template == "送达材料清单":
             from ..core.v4_bridge import load
             counts = load('form_drafts').court_inventory_page_counts(fields)
@@ -129,6 +182,40 @@ def build_form_fill_audit(fields, manifest, *, issues=(), derived_output=None):
                     "reason": ("依据当前收费条款自动生成的原文指引；不能据此认定实际应收、实收或已签署。" if automatic
                                else "文字填写不证明已审批或签署。" if value else "按实际办理情况填写；系统不代作审批或签名。"),
                     "position": {"table": 1, "physical_row": row + 1, "physical_cell": 1}})
+    from ..core.v4_bridge import load
+    contracts=load('form_cell_contracts')
+    for template,names in contracts.MANUAL_AREAS.items():
+        from .source_forms import form_fields_preserved
+        if form_fields_preserved(fields,template):continue
+        for name in names:
+            if any(r['template']==template and r['field']==name for r in rows):continue
+            rows.append({'template':template,'field':name,'label':name,'value':'','saved_value':'',
+                'status':'manual_area','status_label':'预留手填','sources':[],
+                'reason':'由实际办理、审批、评价或签收人填写；不得复制参考答案或由模型代填。',
+                'position':{'region':'原表中的签署、意见或勾选区域'}})
+    for row in rows:
+        row['gap'] = gap_diagnosis(row, fields, manifest)
+        selected=_selected(row['template'],fields)
+        limit=next((s[3] for s in SLOTS.get(selected,[]) if s[0]==row['field']),None)
+        row['specification']=contracts.cell_spec(row['field'],template=row['template'],max_chars=limit,
+            position=row['position'],case_type=fields.get('案件类别',''))
+    from ..core.v4_bridge import load
+    synthesis=load('form_synthesis')
+    if synthesis.scope_supported(fields,manifest):
+        bundle=fields.get('_model_form_synthesis') or {}
+        lookup={s['id']:s for s in bundle.get('sources',[])}
+        file_lookup={os.path.normcase(os.path.abspath(m['path'])):m for m in manifest or [] if m.get('path')}
+        for warning in (bundle.get('case_facts') or {}).get('conflicts',[]):
+            evidence=[]
+            for item in warning['evidence']:
+                source=lookup.get(item['source_id'],{})
+                meta=file_lookup.get(os.path.normcase(os.path.abspath(source.get('source_path',''))),{})
+                if meta:evidence.append({'filename':meta.get('filename','原材料'),'file_id':meta.get('file_id'),
+                    'page':item['page'],'value':item['value'],'role':item['role']})
+            for row in rows:
+                if row['field']==warning['field']:
+                    row.setdefault('source_issues',[]).append({'code':warning['code'],'evidence':evidence,
+                        'message':'诉状内部本金记载不同，简介暂不写该金额；请在同一处对照原页，不以裁判金额覆盖诉请。'})
     return rows
 
 
@@ -144,7 +231,10 @@ def content_preflight(rows):
         if row['template'] not in entry['templates']:entry['templates'].append(row['template'])
     return {'status':'needs_review' if grouped else 'core_content_present',
         'items':list(grouped.values()),'accuracy_independently_verified':False,
-        'manual_approval_areas_excluded':True}
+        'manual_approval_areas_excluded':True,
+        'source_warnings':[dict(field=row['field'],**issue) for row in rows for issue in row.get('source_issues',[])],
+        'system_repairs':list(dict.fromkeys(row['field'] for row in rows
+            if (row.get('gap') or {}).get('code') in ('source_candidate_not_applied','generation_pending','source_review_needed')))}
 
 
 def render_form_fill_audit(rows):
@@ -156,10 +246,13 @@ def render_form_fill_audit(rows):
         location = (f"表{position['table']}／第{position['physical_row']}行／物理格{position['physical_cell']}"
                     if "table" in position else position["region"])
         values = [row["template"], row["label"], row["value"] or "（空白）",
-                  row["status_label"], sources or row["reason"], location]
+                  row["status_label"]+' / '+(row.get('gap') or {}).get('label',''), sources or row["reason"], location]
         body.append("<tr>" + "".join("<td>" + esc(value).replace("\n", "<br>") + "</td>" for value in values) + "</tr>")
         if sources and row["reason"]:
             body.append('<tr><td colspan="6">' + esc(row["reason"]) + '</td></tr>')
+        for issue in row.get('source_issues',[]):
+            evidence='；'.join(f"{x['filename']} 第{x['page']}页：{x['value']}（{x['role']}）" for x in issue['evidence'])
+            body.append('<tr><td colspan="6">'+esc(issue['message']+' '+evidence)+'</td></tr>')
     return ('<h2>原表字段填写与来源对照</h2><p>按本次原表实际填写位置列出。来源定位不等于独立证实事实；签章、审批和实际送达仍须真实办理记录。物理格按原表合并单元格结构计数。</p>'
             '<table><tr><th>原表</th><th>字段</th><th>填写内容</th><th>依据状态</th><th>来源／留空原因</th><th>原表位置</th></tr>'
             + "".join(body) + "</table>")

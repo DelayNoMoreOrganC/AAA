@@ -9,6 +9,26 @@ from app.services.preview_fields import build_preview
 SOURCE = {"path": "fictional.pdf", "file_id": "fictional", "pages": 4}
 
 
+def test_business_intake_excerpt_links_current_source_and_rejects_changed_bundle():
+    from types import SimpleNamespace as NS
+    from app.core.v4_bridge import init_v4_path
+    init_v4_path()
+    from business_intake import collect, KEY
+    from form_drafts import derive_form_drafts
+    unit = NS(doc_type='contract', doc_id=1, source_path=SOURCE['path'], start_page=0, end_page=0, confidence=.95)
+    data = {'案件类别':'非诉'}
+    text = '非诉讼法律事务委托合同一、甲方委托的具体事项详述如下：1、协助办理公证手续。2、仅提供该事项咨询。二、工作方式。'
+    collect(data, page_cache={(SOURCE['path'],1):text}, allowed_sources={(SOURCE['path'],1)}, document_units=[unit])
+    data = derive_form_drafts(data, [unit], source_manifest=[SOURCE])
+    value = data['案情简介']
+    result = field_assurance('案情简介', value, data, source_manifest=[SOURCE])
+    assert result['status'] == 'derived_draft'
+    assert result['anchors'] == [{'file_id':'fictional','page':1}]
+    assert field_assurance('案情简介', value, data, source_manifest=[])['status'] == 'unverified'
+    data[KEY]['pages'][0]['quote'] += '补充内容'
+    assert field_assurance('案情简介', value, data, source_manifest=[SOURCE])['status'] == 'unverified'
+
+
 def fields():
     return {"委托人": "虚构乙", "_provenance": {"委托人": [{
         "method": "visual_agent_local_evidence", "value": "虚构乙", "quote": "委托人：虚构乙",

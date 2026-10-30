@@ -29,6 +29,8 @@ def optional_output(field, value, fields):
         if not isinstance(ref,dict) or ref.get('value')!=value:continue
         if ref.get('method')=='human':supported=True;break
         if ref.get('method') not in ('local_agent','visual_agent_local_evidence'):continue
+        from visual_fact_readback import has_readback, reference_supported as visual_supported
+        if has_readback(ref) and not visual_supported(ref, field, value):continue
         if ref.get('binding')=='intake_contract_date_default':
             from intake_contract_date import current_support
             supported=current_support(ref,fields) is not None
@@ -47,7 +49,7 @@ def optional_output(field, value, fields):
         from fee_display import current
         display=current(fields)
         if len(display['value'] if display else str(value))>50:
-            return dict(blank,reason='收费条款无法在原表内准确简述，留空并保留卷内原合同。')
+            return dict(blank,reason='收费条款无法在原表内准确简述，留空并保留卷内合同或收费通知书。')
     return {'value':value,'code':'supported_optional','reason':''}
 
 BUSINESS = {
@@ -117,7 +119,7 @@ LITERAL_SOURCES = {
     '委托人电话': ('contract','intake_approval','client_talk'),
     '委托人传真': ('contract','intake_approval'),
     '地址': ('contract','intake_approval','complaint','judgment'),
-    '收费标准': ('contract','fee_notice','intake_approval'),
+    '收费标准': ('contract','agency_notice','fee_notice','intake_approval'),
     '承办律师': ('poa','contract','judgment'),
     '律师事务所': ('contract','poa'),
     '案由': ('complaint','indictment','contract','judgment'),
@@ -153,7 +155,7 @@ def source_plan(sources, case_type, targets):
     """Explicit relevant source IDs; these are reading directions, not evidence."""
     rules = writing_rules(case_type, targets)
     return {field: {'source_ids': [s['id'] for kind in rule['source_priority']
-                for s in sources if s['kind']==kind],
+                for s in sources if s['kind']==kind and field in s.get('allowed_fields', targets)],
             'components': rule['content_components'],
             'scope': '仅已读片段；文书末页缺失或文本被截取时不认定完整'}
             for field,rule in rules.items()}

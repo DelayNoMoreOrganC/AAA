@@ -10,8 +10,19 @@ import re
 import unicodedata
 
 
-def _compact(text: str) -> str:
+def normalized_source_text(text: str) -> str:
+    """Use the same formatting equivalence at admission and semantic checks.
+
+    NFKC and whitespace only: no fuzzy OCR repair, case folding, digit changes,
+    punctuation deletion, date conversion or source/value rewriting.
+    """
     return re.sub(r"\s+", "", unicodedata.normalize("NFKC", text))
+
+
+# Existing field-specific validators keep this private shorthand. The visual
+# workflow uses the public helper so its early gate cannot be stricter or more
+# permissive than this source-text comparison through accidental drift.
+_compact = normalized_source_text
 
 
 def _clause(text: str, start: int, end: int) -> str:
@@ -478,6 +489,18 @@ def _fee_terms_preserved(value: str, page: str, source_start: int) -> bool:
     Only fee-term clauses are checked. A separate statement that payment proof
     is absent is not a price term, and never establishes paid/unpaid status.
     """
+    # A case-specific engagement notice can state a price, but its first fixed
+    # amount is not the whole fee where alternatives/adjustments follow. The
+    # scoped notice summarizer retains these terms and selection evidence;
+    # ordinary literal extraction may not strip them to make a small cell fit.
+    if page.startswith('委托代理通知书'):
+        conditional = re.search(r'律师费(?:增加、)?扣减|债权转让|风险代理|浮动费率|计费上限', page)
+        if conditional:
+            terms_start = re.search(r'(?:一[、.．])?按照以下.{0,12}计费方式计算律师费[:：]', page)
+            if terms_start:
+                terms = page[terms_start.end():].rstrip('。;；')
+                if terms and terms not in value.rstrip('。;；'):
+                    return False
     # An explicit fee section can contain several sentences. The first amount
     # alone drops a later risk fee or payment prerequisite. Keep the entire
     # bounded section; punctuation may differ only at its final boundary.

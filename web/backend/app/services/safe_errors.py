@@ -31,9 +31,12 @@ class ErrorCode(str, Enum):
     DEEPSEEK_AUTH_FAILED = "GD_DEEPSEEK_AUTH_FAILED"
     DEEPSEEK_QUOTA_EXHAUSTED = "GD_DEEPSEEK_QUOTA_EXHAUSTED"
     DEEPSEEK_RATE_LIMITED = "GD_DEEPSEEK_RATE_LIMITED"
+    DEEPSEEK_REQUEST_TOO_LARGE = "GD_DEEPSEEK_REQUEST_TOO_LARGE"
     RECOGNITION_PROGRESS_INVALID = "GD_RECOGNITION_PROGRESS_INVALID"
     RECOGNITION_PROGRESS_STORAGE = "GD_RECOGNITION_PROGRESS_STORAGE"
     RECOGNITION_PROGRESS_CONFIG = "GD_RECOGNITION_PROGRESS_CONFIG"
+    RECOGNITION_REQUEST_UNCERTAIN = "GD_RECOGNITION_REQUEST_UNCERTAIN"
+    MODEL_REQUEST_BUDGET_EXHAUSTED = "GD_MODEL_REQUEST_BUDGET_EXHAUSTED"
     PROCESSING_MODE_INVALID = "GD_PROCESSING_MODE_INVALID"
     SOURCE_VERSION_MISSING = "GD_SOURCE_VERSION_MISSING"
     CONFIRMATION_REQUIRED = "GD_CONFIRMATION_REQUIRED"
@@ -82,9 +85,12 @@ _MESSAGES = {
     ErrorCode.DEEPSEEK_AUTH_FAILED: "DeepSeek API 鉴权失败，请检查当前账号保存的密钥及模型权限。",
     ErrorCode.DEEPSEEK_QUOTA_EXHAUSTED: "DeepSeek API 余额不足，请检查标准 API 额度后重试。",
     ErrorCode.DEEPSEEK_RATE_LIMITED: "DeepSeek API 并发或速率受限，请稍后重试。",
+    ErrorCode.DEEPSEEK_REQUEST_TOO_LARGE: "图像请求过大，已停止发送且未自动重试。请由管理员缩小批次；原件及已保存结果保留。",
     ErrorCode.RECOGNITION_PROGRESS_INVALID: "已保存的识别进度无法通过一致性检查，已停止，未自动重做已完成的模型请求。请由管理员检查进度记录；原材料和历史成果保留。",
     ErrorCode.RECOGNITION_PROGRESS_STORAGE: "识别进度暂时无法读取或保存，已停止。请检查工作站存储权限、空间或重复运行后继续。最后一次尚未保存的模型请求可能需要重发；原材料和历史成果保留。",
     ErrorCode.RECOGNITION_PROGRESS_CONFIG: "识别续跑配置无效，已停止。请由管理员检查工作站版本；未切换服务商，原材料和历史成果保留。",
+    ErrorCode.RECOGNITION_REQUEST_UNCERTAIN: "上次模型请求结果未知；如使用云端，可能已产生费用。系统未自动重发，确认需要重新请求后请手动续跑；已有识别结果保留。",
+    ErrorCode.MODEL_REQUEST_BUDGET_EXHAUSTED: "本任务模型请求额度已用尽，已停止新增调用，已有识别记录保留。请联系管理员核对任务额度；重复点击不会增加额度。",
     ErrorCode.PROCESSING_MODE_INVALID: "处理模式无效，请由管理员检查设置。",
     ErrorCode.SOURCE_VERSION_MISSING: "旧任务缺少输入版本，请继续归档建立新修订。",
     ErrorCode.CONFIRMATION_REQUIRED: "当前修订尚未最终确认，请重新核对并确认出卷。",
@@ -223,7 +229,8 @@ def deepseek_error_code(error, fallback=ErrorCode.DEEPSEEK_ANALYSIS_FAILED):
             "KEY_INVALID": ErrorCode.DEEPSEEK_AUTH_FAILED,
             "AUTH_FAILED": ErrorCode.DEEPSEEK_AUTH_FAILED,
             "QUOTA_EXHAUSTED": ErrorCode.DEEPSEEK_QUOTA_EXHAUSTED,
-            "RATE_LIMITED": ErrorCode.DEEPSEEK_RATE_LIMITED}.get(error.code, fallback)
+            "RATE_LIMITED": ErrorCode.DEEPSEEK_RATE_LIMITED,
+            "REQUEST_TOO_LARGE": ErrorCode.DEEPSEEK_REQUEST_TOO_LARGE}.get(error.code, fallback)
 
 
 def recognition_progress_error_code(error):
@@ -233,6 +240,10 @@ def recognition_progress_error_code(error):
     from recognition_journal import RecognitionJournalError
     if type(error) is not RecognitionJournalError:
         return ErrorCode.ANALYSIS_FAILED
+    if error.code == 'REQUEST_UNCERTAIN':
+        return ErrorCode.RECOGNITION_REQUEST_UNCERTAIN
+    if error.code == 'REQUEST_BUDGET_EXHAUSTED':
+        return ErrorCode.MODEL_REQUEST_BUDGET_EXHAUSTED
     if error.code in ("READ_FAILED", "WRITE_FAILED", "LOCKED", "LIMIT_EXCEEDED"):
         return ErrorCode.RECOGNITION_PROGRESS_STORAGE
     if error.code in ("CONFIG_INVALID", "REQUEST_INVALID"):

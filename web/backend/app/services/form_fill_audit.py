@@ -39,6 +39,7 @@ GAP_LABELS = {
     'configuration':'律所设置', 'output_pending':'出卷时计算', 'conflict':'集中核对来源冲突',
     'source_candidate_not_applied':'已有依据，系统待补填',
     'generation_pending':'综合撰写待完成', 'source_review_needed':'已有候选，系统待核查',
+    'policy_review_needed':'填写规则已更新，旧内容待复核',
     'not_found_in_read_material':'已读材料暂未取得',
     'intentional_blank':'按约定留空', 'optional_blank':'不确定则留空',
 }
@@ -77,11 +78,12 @@ def gap_diagnosis(row, fields, manifest):
                 return {'code':'source_candidate_not_applied','label':GAP_LABELS['source_candidate_not_applied'],
                         'action':'repair_before_requesting_material','anchors':check['anchors']}
         generation=(fields.get('_form_synthesis_status') or {}).get('fields',{}).get(key)
-        if generation and generation!='generated':code='generation_pending'
+        if generation=='policy_review_required':code='policy_review_needed'
+        elif generation and generation!='generated':code='generation_pending'
         elif candidate:code='source_review_needed'
         else:code='not_found_in_read_material'
     return {'code':code,'label':GAP_LABELS[code], 'action':
-        'system_review_first' if code in ('generation_pending','source_review_needed','not_found_in_read_material')
+        'system_review_first' if code in ('generation_pending','source_review_needed','not_found_in_read_material','policy_review_needed')
         else 'retain' if code in ('filled','human_blank') else 'single_consolidated_review'}
 
 
@@ -195,6 +197,8 @@ def build_form_fill_audit(fields, manifest, *, issues=(), derived_output=None):
                 'position':{'region':'原表中的签署、意见或勾选区域'}})
     for row in rows:
         row['gap'] = gap_diagnosis(row, fields, manifest)
+        if row['gap']['code'] == 'policy_review_needed':
+            row['reason'] = '保存的自动内容及来源仍在历史候选中，填写规则更新后需复核；不能据此认定缺件或要求重复上传。'
         selected=_selected(row['template'],fields)
         limit=next((s[3] for s in SLOTS.get(selected,[]) if s[0]==row['field']),None)
         row['specification']=contracts.cell_spec(row['field'],template=row['template'],max_chars=limit,
@@ -234,7 +238,7 @@ def content_preflight(rows):
         'manual_approval_areas_excluded':True,
         'source_warnings':[dict(field=row['field'],**issue) for row in rows for issue in row.get('source_issues',[])],
         'system_repairs':list(dict.fromkeys(row['field'] for row in rows
-            if (row.get('gap') or {}).get('code') in ('source_candidate_not_applied','generation_pending','source_review_needed')))}
+            if (row.get('gap') or {}).get('code') in ('source_candidate_not_applied','generation_pending','source_review_needed','policy_review_needed')))}
 
 
 def render_form_fill_audit(rows):

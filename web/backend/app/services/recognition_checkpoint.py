@@ -104,7 +104,26 @@ class RecognitionCheckpoint:
     def bind(self, client):
         _validate_directory(self.directory, self._root)
         from recognition_journal import bind_client
-        return bind_client(client, directory=self.directory, scope=self.scope, retry_token=self.retry_token)
+        scope = self.scope
+        policy = scope.get('request_budget')
+        budget = None
+        if policy is not None:
+            from model_request_budget import TaskRequestBudget
+            directory = self.directory.parent/'model-budget'
+            _validate_directory(directory,self._root)
+            budget = TaskRequestBudget(directory,scope={key:scope[key] for key in
+                ('org_id','case_id','task_id','actor_id','source_version')},
+                limit=policy['max_requests'],journal_directory=self.directory)
+        return bind_client(client, directory=self.directory, scope=scope, retry_token=self.retry_token,
+                           request_budget=budget)
+
+    def page_readings(self):
+        from page_reading_store import PageReadingStore, reader_identity
+        scope = self.scope
+        _validate_directory(self.directory.parent / 'page-readings', self._root)
+        return PageReadingStore(self.directory.parent / 'page-readings', self._root,
+            {key: scope[key] for key in ('org_id', 'case_id', 'task_id')},
+            scope['reading_sources'], reader_identity())
 
 
 def _code_and_prompts():
@@ -167,7 +186,7 @@ def build_checkpoint(task, parent, org_id, config, *, case_type, stage, sources,
         authorized = (privacy.get("mode") == "local" and privacy.get("cloud_authorized") is False
                       and callable(privacy.get("request_guard")) and vision.get("model") in ALLOWED_MODELS) if local else (
                       privacy.get("mode") == "cloud" and privacy.get("cloud_authorized") is True and vision.get("model") == "deepseek-flash")
-        if (not authorized or analysis_kind not in ("full", "delta")
+        if (not authorized or analysis_kind not in ("full", "delta", "form_repair")
                 or not isinstance(case_type, str) or not case_type or not isinstance(stage, str)):
             raise RecognitionCheckpointError()
         budget = vision.get("title_review_budget", 24)
@@ -177,6 +196,11 @@ def build_checkpoint(task, parent, org_id, config, *, case_type, stage, sources,
         if profile is not None and type(profile) is not dict:
             raise RecognitionCheckpointError()
         retry_token = _retry_token((profile or {}).get("_recognition_retry_token"))
+        from ..core.v4_bridge import load
+        validated_policy = load('document_field_batch').validated_policy
+        batch_policy = validated_policy((profile or {}).get('_visual_batch_policy'))
+        if batch_policy != validated_policy(vision.get('batch_policy')) or local and batch_policy is not None:
+            raise RecognitionCheckpointError()
         org_id, case_id = _identifier(org_id), _identifier(task.case_id)
         task_id, revision = _positive(task.id), _positive(task.revision)
         manifest, by_path = _manifest(task.source_manifest)
@@ -189,7 +213,7 @@ def build_checkpoint(task, parent, org_id, config, *, case_type, stage, sources,
                 raise RecognitionCheckpointError()
             selected.append(row)
             selected_ids.add(row["file_id"])
-        if not selected or (analysis_kind == "full" and len(selected) != len(manifest)):
+        if not selected or (analysis_kind in ("full", "form_repair") and len(selected) != len(manifest)):
             raise RecognitionCheckpointError()
         parent_scope = None
         if parent is not None:
@@ -205,6 +229,7 @@ def build_checkpoint(task, parent, org_id, config, *, case_type, stage, sources,
         if analysis_kind == "delta" and parent_scope is None:
             raise RecognitionCheckpointError()
         scope = {"version": 1, "org_id": org_id, "case_id": case_id, "task_id": task_id, "revision": revision,
+                 "reading_sources": manifest,
                  "actor_id": _identifier(task.created_by), "source_version": task.source_version,
                  "case_type": case_type, "stage": stage, "analysis_kind": analysis_kind,
                  "source_manifest_sha256": _digest(manifest), "source_count": len(manifest),
@@ -217,6 +242,18 @@ def build_checkpoint(task, parent, org_id, config, *, case_type, stage, sources,
                                    "workflow": "document_two_stage", "title_review_budget": budget,
                                    "extraction_mode": "visual_agent", "order_mode": config.get("archive", {}).get("order_mode", "catalog")},
                  "code": _code_and_prompts()}
+        from .experience_binding import bind_config
+        scope["experience_snapshot_sha256"] = bind_config(task, org_id, config)["_experience_context"].identity
+        if batch_policy is not None:
+            scope['configuration']['batch_policy'] = batch_policy
+        if '_request_budget' in (profile or {}):
+            policy = profile['_request_budget']
+            if (type(policy) is not dict or set(policy) != {'version','max_requests'} or
+                    type(policy['version']) is not int or policy['version'] != 1 or
+                    policy['max_requests'] is not None and (type(policy['max_requests']) is not int
+                        or not 0 <= policy['max_requests'] <= 100000)):
+                raise RecognitionCheckpointError()
+            scope['request_budget'] = policy
         if local:
             scope["configuration"].update(model_digest=(profile or {}).get("model_digest"), batch_pages=1)
         from ..config import ORGS_DIR
@@ -232,7 +269,23 @@ def build_checkpoint(task, parent, org_id, config, *, case_type, stage, sources,
 def analysis_config(task, parent, org_id, config, **context):
     """Keep the private capability out of the caller's reusable config."""
     checkpoint = build_checkpoint(task, parent, org_id, config, **context)
-    result = dict(config)
+    from .experience_binding import bind_config
+    result = bind_config(task, org_id, config)
     if checkpoint is not None:
         result["_recognition_checkpoint"] = checkpoint
     return result
+
+
+def parent_readings(task, parent, org_id, manifest, *, reader):
+    """Only an authorized same-case parent task can supply old reading records."""
+    from page_reading_store import PageReadingStore
+    from ..config import ORGS_DIR
+    org_id, case_id = _identifier(org_id), _identifier(task.case_id)
+    if parent.case_id != case_id or task.parent_task_id != parent.id:
+        raise RecognitionCheckpointError()
+    task_id = _positive(parent.id)
+    sources, _ = _manifest(manifest)
+    directory = Path(task_work_dir(org_id, case_id, task_id)) / 'page-readings'
+    _validate_directory(directory, ORGS_DIR)
+    return PageReadingStore(directory, ORGS_DIR,
+        {'org_id': org_id, 'case_id': case_id, 'task_id': task_id}, sources, reader, readonly=True)

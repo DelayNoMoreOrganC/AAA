@@ -30,6 +30,8 @@ def write_quality_report(work, analysis, files, output_pdf, mode, skipped, *, ve
     verified = verification if isinstance(verification, dict) else vars(verification) if verification is not None else {}
     conservation = (verified.get("success") is True and source_pages > 0
                     and verified.get("original_pages_included") == source_pages)
+    from .source_page_locations import VERSION as LOCATIONS_VERSION, project_locations
+    locations = project_locations(verified.get('source_page_locations'), files, sources, total, verified.get('pagination'))
     rules = get_rule_readiness(analysis.case_type, stage)
     material_report = material_completeness(analysis, stage, [
         {"file_id": getattr(item, "id", None), "path": source["path"], "filename": source["filename"], "pages": source["pages"]}
@@ -91,6 +93,8 @@ def write_quality_report(work, analysis, files, output_pdf, mode, skipped, *, ve
         "bookmarks": bookmarks,
         "links": links,
         "source_page_conservation": "passed" if conservation else "not_verified",
+        "source_page_locations_version": LOCATIONS_VERSION if locations is not None else None,
+        "source_page_locations": locations,
         "original_pages_included": verified.get("original_pages_included"),
         "document_provenance": document_provenance,
         "document_classification_audit": classification_audit,
@@ -138,12 +142,19 @@ def write_quality_report(work, analysis, files, output_pdf, mode, skipped, *, ve
         f'<td>{esc(item["reason"])}<br>{esc(item["edited_at"])}</td><td>{"已应用" if item["applied_to_current_volume"] else "未应用，请核对历史记录"}</td></tr>'
         for item in classification_audit)
     classification_html = ('<table><tr><th>原材料与页段</th><th>分类调整</th><th>核对原因与时间</th><th>本卷状态</th></tr>' + classification_rows + '</table>') if classification_rows else '<p>无人工文书分类记录；自动分类仍需对照原件核对。</p>'
+    from urllib.parse import quote
+    output_link = esc(quote(Path(output_pdf).name))
+    location_rows = ''.join(f'<tr><td>{esc(row["source_filename"])}</td><td>{row["source_page"]}</td>'
+        f'<td><a href="{output_link}#page={row["archive_page"]}">{row["archive_page"]}</a></td>'
+        f'<td>{row["body_page"] if row["body_page"] is not None else "—"}</td></tr>' for row in (locations or []))
+    locations_html = ('<details><summary>源页去向（原件每页对应成卷位置）</summary><p>成卷页为PDF实际页序；草稿不新增正文页码。此表说明摆放位置，不证明分类或内容识别正确。</p>'
+        '<table><tr><th>原材料</th><th>原页</th><th>成卷页</th><th>正文页码</th></tr>'+location_rows+'</table></details>') if locations is not None else '<p>历史结果未记录逐页去向。</p>'
     original = (derived_output or {}).get("template_evidence") or {}
     template_html = ('<h2>原表版式核对</h2><p>使用律所提供的原目录和原表，仅填写对应位置；已有立案审批表、结案报告表及律师所送达材料清单保留原件，不重复补填。质量监督卡与委托人须知分别保留已有组件，只补缺失部分；保留原件不证明已告知或已签署。生成表格的框格与页数已校验；原模板哈希记录在本清单 JSON 中。模板来源核验不等于现行规范核验。</p>'
                      if original.get("format_verification") == "original_frames_and_page_counts_verified" else '')
     body = f'''<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>归档质检清单</title>
     <style>body{{font:16px/1.7 sans-serif;max-width:1000px;margin:40px auto;padding:20px;color:#243c33}}table{{border-collapse:collapse;width:100%}}td,th{{border:1px solid #ccd8d0;padding:10px;text-align:left}}code{{font-size:11px;word-break:break-all}}.notice{{background:#fff4df;padding:16px}}</style>
-    <h1>归档质检清单</h1><p>生成时间：{esc(report["created_at"])} · 处理模式：{esc(mode)}</p>
+    <h1>归档质检清单</h1><p>生成时间：{esc(report["created_at"])} · 处理模式：{esc(mode)}</p>{locations_html}
     <p>源材料 {len(sources)} 份 / {report["source_pages"]} 页；归档 {total} 页（含系统表与目录）；电子书签 {bookmarks} 个；链接 {links} 个。</p>
     <p>源页数量、范围与重复入卷检查：{'通过' if conservation else '未核验，不能作为完成依据'}。</p><p>{esc(report['pagination_convention'])}</p><table><tr><th>材料</th><th>页数</th><th>处理文件 SHA-256</th></tr>{rows}</table>
     {template_html}{render_form_fill_audit(field_audit)}<h2>补充材料清单</h2><p>{esc(material_report['notice'])}</p><ul>{material_html}</ul>

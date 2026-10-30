@@ -12,7 +12,8 @@ from app.services.task_workflow import analysis_issues
 from app.services.original_template_service import _values, approval_custom_value, fill_original_docx
 
 load('source_fee_notice')
-PREPARED = runpy.run_path(str(Path(__file__).resolve().parents[3] / 'tests/test_source_fee_notice.py'))['prepared']
+FEE_FIXTURES = runpy.run_path(str(Path(__file__).resolve().parents[3] / 'tests/test_source_fee_notice.py'))
+PREPARED = FEE_FIXTURES['prepared']
 MANIFEST = [{'path': 'notice.pdf', 'file_id': 'notice', 'filename': 'notice.pdf', 'pages': 1}]
 
 
@@ -54,13 +55,26 @@ def test_stale_fee_is_cleared_but_manual_value_and_audit_survive():
     assert human['收费标准'] == '人工核对的收费条款'
 
 
-def test_fee_note_is_visible_in_original_and_audit_and_never_written_as_approval(tmp_path):
+@pytest.mark.parametrize('layout',['numbered','marked','visual'])
+def test_fee_note_is_visible_in_original_and_audit_and_never_written_as_approval(tmp_path,layout):
     from zipfile import ZipFile
     from lxml import etree
     from app.services.form_fill_audit import build_form_fill_audit
-    fields=PREPARED();fields['案件类别']='民事'
+    fields=PREPARED()
+    manifest=deepcopy(MANIFEST)
+    if layout=='marked':
+        fields=deepcopy(FEE_FIXTURES['FIELDS'])
+        FEE_FIXTURES['recall'](fields,{('notice.pdf',1):FEE_FIXTURES['CHECKED_NOTICE']})
+    elif layout=='visual':
+        fixture=runpy.run_path(str(Path(__file__).resolve().parents[3] / 'tests/test_visual_fee_readback.py'))
+        _,_,proof=fixture['proof_sample']()
+        fields=fixture['fill'](proof)
+        manifest[0]['sha256']='a'*64
+    fields['案件类别']='民事'
     note,automatic=approval_custom_value(fields,9)
-    assert automatic and note=='其他收费约定详卷内委托代理通知书。'
+    expected='其他收费约定详卷内委托代理通知书。' if layout=='numbered' else '扣减、债权转让等计费条件详卷内委托代理通知书及续页。'
+    assert automatic and note==expected
+    assert field_assurance('收费标准',fields['收费标准'],fields,source_manifest=manifest)['status']=='source_supported'
     assert approval_custom_value(fields,6)==('',False)
     assert approval_custom_value(fields,7)==('',False)
     target=tmp_path/'approval.docx'
@@ -69,11 +83,28 @@ def test_fee_note_is_visible_in_original_and_audit_and_never_written_as_approval
         root=etree.fromstring(z.read('word/document.xml'))
     ns={'w':'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
     text=''.join(root.xpath('//w:t/text()',namespaces=ns))
-    assert '风险基准2.5%' in text and note in text
-    audit=build_form_fill_audit(fields,MANIFEST)
+    assert ('风险基准2.5%' if layout=='numbered' else '固定9000元') in text and note in text
+    audit=build_form_fill_audit(fields,manifest)
     row=next(r for r in audit if r['template']=='立案审批表' and r['field']=='备注')
     assert row['value']==note and row['status']=='source_reference'
     assert row['saved_value']=='' and row['sources']==[{'filename':'notice.pdf','page':1}]
+
+
+def test_visual_notice_current_source_hash_required_for_form_and_derived_evidence():
+    fixture=runpy.run_path(str(Path(__file__).resolve().parents[3] / 'tests/test_visual_fee_readback.py'))
+    _,_,proof=fixture['proof_sample']()
+    fields=fixture['fill'](proof)
+    manifest=[{**MANIFEST[0],'sha256':'a'*64}]
+    ref=fields['_provenance']['收费标准'][0]
+    derived={**ref,'method':'derived_form_draft','input_method':ref['method'],
+        'input_field':'收费标准','input_value':ref['value'],'value':'归纳文字'}
+    assert supporting_refs(derived,fields,manifest)==[]
+    manifest[0]['sha256']='b'*64
+    assert supporting_refs(derived,fields,manifest) is None
+    assert field_assurance('收费标准',fields['收费标准'],fields,source_manifest=manifest)['status']=='unverified'
+    manifest[0]['sha256']='a'*64
+    ref['notice_visual_readback']['body']['second_text']+='被修改的条款'
+    assert _values('立案审批表',fields,'',{})['收费标准']==''
 
 
 @pytest.mark.parametrize('manual',['', '已按实际情况填写的备注'])

@@ -262,6 +262,13 @@ def material_completeness(analysis, stage=None, source_manifest=None):
             "status": status, "material_found": bool(located), "sources": located,
             "related_sources": related + uncertain, "reason_codes": codes, "message": message,
             "legal_requirement_verified": False, "source_id": "gd-historical-templates", "rule_version": RULE_VERSION})
+    stop=(analysis.fields or {}).get('_request_budget_stop') or {}
+    if stop.get('status')=='incomplete' and stop.get('unclassified_pages'):
+        for check in checks:
+            if check.get('check_kind')=='source_material' and check.get('status')=='missing':
+                check.update(status='processing_incomplete',material_absence_proven=False,
+                    reason_codes=['classification_not_completed'],
+                    message='部分原页尚未完成识别，目前不能判断这类材料是否缺失；请先处理任务额度。')
     unknown = [anchor(unit) for unit in units if getattr(unit, "doc_type", None) in (None, "unknown", "other", "default") and anchor(unit)]
     # This report intentionally never turns machine classification into final acceptance.
     return {"version": RULE_VERSION, "formal_ready": False, "checks": checks,

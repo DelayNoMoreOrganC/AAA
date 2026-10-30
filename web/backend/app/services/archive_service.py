@@ -220,7 +220,9 @@ async def run_archive(task_id, case_id, org_id, user_id, order_mode="catalog"):
         if not files:
             raise SafeTaskError(ErrorCode.NO_SOURCES)
         task = await _task_record(task_id)
-        automatic_delivery = task.requested_operation in ("analyze_and_draft", "draft")
+        from .form_policy_repair import OPERATION as FORM_REPAIR_OPERATION, load_repair_parent, public_repair_plan
+        policy_repair_job = task.requested_operation == FORM_REPAIR_OPERATION
+        automatic_delivery = task.requested_operation in ("analyze_and_draft", "draft", FORM_REPAIR_OPERATION)
         current = await asyncio.to_thread(build_source_manifest, files)
         current_version = source_version(current, case.case_type, getattr(case, "stage", ""))
         async with AsyncSessionLocal() as db:
@@ -238,7 +240,26 @@ async def run_archive(task_id, case_id, org_id, user_id, order_mode="catalog"):
         parent = await _task_record(task.parent_task_id) if task.parent_task_id else None
         analysis_mode = (task.execution_profile or {}).get("processing_mode", "local")
         reused_checkpoint = False
-        if os.path.isfile(os.path.join(work, "analysis_snapshot.json")):
+        if policy_repair_job:
+            # A bounded repair must never fall through to full recognition,
+            # including after source/policy changes or a service restart.
+            if (parent is None or parent.case_id != task.case_id or
+                    parent.source_version != task.source_version or
+                    parent.source_manifest != task.source_manifest):
+                raise SafeTaskError(ErrorCode.SNAPSHOT_STALE)
+            saved = await asyncio.to_thread(load_repair_parent, parent, org_id,
+                case_type=case.case_type, stage=getattr(case, 'stage', '') or '', config=config)
+            if saved is None:
+                raise SafeTaskError(ErrorCode.SNAPSHOT_STALE)
+            current_plan = public_repair_plan(parent, saved)
+            frozen_plan = (task.execution_profile or {}).get('_form_policy_plan')
+            if frozen_plan != {'token':current_plan['token'],'fields':current_plan['fields']}:
+                raise SafeTaskError(ErrorCode.SNAPSHOT_STALE)
+            analysis, manual, conflicts = saved
+            mark_snapshot_metrics_reused(analysis)
+            reused_checkpoint = True
+            await _persist_task(task_id, status=TaskStatus.running, phase="analyzing", stage="正在复核填写规则更新的栏目")
+        elif os.path.isfile(os.path.join(work, "analysis_snapshot.json")):
             analysis, snapshot = load_analysis(work)
             verify_classification(task, analysis)
             if snapshot.get("workflow", {}).get("source_version") != task.source_version:
@@ -264,6 +285,9 @@ async def run_archive(task_id, case_id, org_id, user_id, order_mode="catalog"):
             config["workflow_case_type"] = case_type
             config["workflow_stage"] = getattr(case, "stage", "")
             analysis, manual, conflicts = await run_word(analyze_with_parent, ap, task, parent, files, config, org_id, tracker.log)
+        from .form_policy_repair import repair_policy_cells
+        await asyncio.to_thread(repair_policy_cells, analysis, task, config, org_id, manual, conflicts,
+                                stage=getattr(case, 'stage', ''), log=tracker.log)
         refresh_form_drafts(analysis, manual, manifest, conflicts, task=task)
         conflicts = [entry for entry in conflicts if entry.get("kind") not in ("form_draft", "party_binding")]
         preview_only = get_settings().preview_only
@@ -290,9 +314,10 @@ async def run_archive(task_id, case_id, org_id, user_id, order_mode="catalog"):
             status=TaskStatus.running if automatic_delivery else TaskStatus.awaiting_review,
             phase="rendering" if automatic_delivery else "needs_input" if needs_input else "ready_to_finalize",
             checkpoint="analyzed", requested_operation="draft" if automatic_delivery else "analyze", manual_fields=manual,
+            confirmation=None,
             issues=issues, rule_readiness=rules,
             progress=60.0,
-            stage="整理完成，正在生成整卷档案草稿" if automatic_delivery else "请处理材料异常并核对草稿" if needs_input else "草稿已准备好，请最终确认出卷",
+            stage=("额度用尽，正在保存已有内容并生成草稿" if persist_fields.get('_request_budget_stop') else "整理完成，正在生成整卷档案草稿") if automatic_delivery else "请处理材料异常并核对草稿" if needs_input else "草稿已准备好，请最终确认出卷",
             fields=persist_fields,
             catalog_status=_build_catalog_status(analysis, stage=getattr(case, "stage", None), source_manifest=task.source_manifest),
             output_docx_dir=dx,
@@ -384,6 +409,8 @@ async def run_assemble(task_id, case_id, org_id, user_id, order_mode=None, skipp
             raise SafeTaskError(ErrorCode.CATALOG_TEMPLATE_MISMATCH) from None
         # Draft generation does not invent acknowledgement or skip present pages.
         # Missing slots are recorded in the single supplement list and quality report.
+        if not draft and ((analysis.fields or {}).get('_request_budget_stop') or {}).get('status')=='incomplete':
+            raise SafeTaskError(ErrorCode.MODEL_REQUEST_BUDGET_EXHAUSTED)
         skip = [item["seq"] for item in analysis.missing_items] if draft else skipped if skipped is not None else confirmation.get("skipped", [])
         if not draft and unresolved_issues(task.issues, analysis.fields, task=task):
             raise SafeTaskError(ErrorCode.UNRESOLVED_ISSUES)
@@ -567,7 +594,8 @@ async def update_task_fields(task, org_id: str, field_updates: dict, actor_id: s
             continue
         previous = provenance.get(key) or []
         previous = list(previous) if isinstance(previous, list) else [previous]
-        human = {"method": "human", "value": value, "edited_at": _now().isoformat(), "actor_id": actor_id}
+        from .experience_sources import human_field_record
+        human = human_field_record(task, key, value, actor_id=actor_id, org_id=org_id, edited_at=_now().isoformat())
         if key in ('阶段工作情况','顾问协议状态') and isinstance(merged.get('委托人'),str) and merged['委托人'].strip():
             # Bind this explicit human entry to this task's current subject;
             # a later client change must not reassign the old stage record.

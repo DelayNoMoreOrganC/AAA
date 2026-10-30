@@ -2,6 +2,18 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { archiveSummary,nextArchiveAction,materialRequirementLabel,canUseTaskAssistant,parseVisualStageProgress } from '../src/domain/taskExperience.js'
 
+test('policy-only updates reuse the existing primary action after explicit consent and protect pending edits',()=>{
+  const task={id:1,status:'awaiting_review',has_archive:true,delivery_kind:'draft',can_resume:true,can_assemble:true,
+    form_policy_update:{available:true,token:'a'.repeat(64)}}
+  assert.equal(nextArchiveAction(task,{cloudConsentRequired:true}).kind,'consent')
+  assert.equal(nextArchiveAction(task,{cloudConsentRequired:true,cloudApproved:true}).kind,'resume')
+  assert.equal(nextArchiveAction(task,{}).label,'更新表单草稿')
+  assert.equal(nextArchiveAction(task,{documentDraft:true}).kind,'catalog')
+  assert.equal(nextArchiveAction(task,{hasUnsaved:true}).kind,'draft')
+  assert.equal(nextArchiveAction(task,{historical:true,latestTaskId:2}).kind,'latest')
+  assert.equal(nextArchiveAction({...task,form_policy_update:null}).kind,'download')
+})
+
 test('printed civil directory count excludes the cover for both 17 and 18 item layouts',()=>{
   for(const count of [17,18]){
     const rows=Array.from({length:count+1},(_,seq)=>({seq,found:true}))

@@ -113,4 +113,5 @@ def reconcile(units, *, layouts, page_cache, allowed_sources):
         groups.append({'source_path':index.source_path,'index_page':index.start_page+1,
             'start_page':index.start_page+1,'end_page':end+1,'doc_ids':[index.doc_id]+[u.doc_id for u in children],
             'offset':offset,'anchors':anchors,'entries':linked,'attachment_completeness_verified':False})
-    return groups,confirmed
+    from evidence_group_state import bind_groups
+    return bind_groups(groups,units),confirmed

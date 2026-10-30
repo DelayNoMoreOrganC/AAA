@@ -61,6 +61,24 @@ def test_complete_output_and_zip_bytes_pass(complete_outputs):
     assert len(report["artifacts"]) == len(REQUIRED_ARTIFACT_KEYS)
 
 
+@pytest.mark.parametrize('fault',[None,'missing','duplicate','fake_total'])
+def test_page_locations_are_verified_against_sources_and_actual_output(complete_outputs,fault):
+    root,files=complete_outputs
+    quality=json.loads(Path(files['quality_json']).read_text(encoding='utf8'))
+    row={'source_index':1,'source_filename':'source.pdf','source_sha256':'a'*64,'source_page':1,'archive_page':1,'body_page':None}
+    quality.update(source_page_locations_version='source-pages-v1',source_page_locations=[row],output_pages=1,
+        sources=[{'filename':'source.pdf','processed_sha256':'a'*64,'pages':1}],pagination={'mode':'draft','body_start':0})
+    if fault=='missing':quality['source_page_locations']=[]
+    if fault=='duplicate':quality['source_page_locations'].append(dict(row))
+    if fault=='fake_total':quality['output_pages']=2;row['archive_page']=2
+    Path(files['quality_json']).write_text(json.dumps(quality),encoding='utf8')
+    with ZipFile(files['package_zip'],'w') as package:
+        for key,path in files.items():
+            if key!='package_zip':package.write(path,Path(path).relative_to(root).as_posix())
+    result=_verify(root,files)
+    assert result['valid'] is (fault is None),result['errors']
+
+
 def test_original_approval_replaces_only_generated_approval_and_must_be_valid(complete_outputs):
     root,files=complete_outputs
     files.pop('docx:立案审批表')

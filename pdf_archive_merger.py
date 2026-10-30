@@ -30,6 +30,7 @@ class ArchiveResult:
     original_pages_included: int = 0
     order_issues: List[Dict] = None
     pagination: Optional[Dict] = None
+    source_page_locations: Optional[List[Dict]] = None
 
     def __post_init__(self):
         if self.sources is None:
@@ -285,6 +286,25 @@ def _check_page_conservation(
                 f"重页 {duplicates}，越界页 {len(unexpected)}"
             )
     return ok, total_included, total_expected
+
+
+def _source_page_locations(units, doc_body_idx, cover_end_idx, toc_pages, pagination_mode):
+    """Map actual successful insertions to one-based physical output pages.
+
+    These locations describe placement, not semantic classification accuracy.
+    Original forms go through the same recorded insertion path as documents.
+    """
+    locations = []
+    for unit in units:
+        start = doc_body_idx[unit.doc_id]
+        for offset, source_page in enumerate(range(unit.start_page, unit.end_page + 1)):
+            body_index = start + offset
+            archive_index = body_index + (toc_pages if body_index >= cover_end_idx else 0)
+            locations.append({'source_path':_source_key(unit.source_path),
+                'source_page':source_page+1,'archive_page':archive_index+1,
+                'body_page':archive_index-cover_end_idx-toc_pages+1 if pagination_mode=='body' and body_index>=cover_end_idx else None,
+                'doc_id':unit.doc_id,'catalog_seq':unit.catalog_seq})
+    return sorted(locations,key=lambda row:row['archive_page'])
 
 
 def _verify_document_order(catalog, doc_spans, log=print, *, order_mode="catalog") -> List[Dict]:
@@ -943,6 +963,17 @@ def build_full_archive(
         (unit for unit in doc_spans if unit.doc_id in doc_body_idx),
         key=lambda unit: doc_body_idx[unit.doc_id],
     )
+    # Legacy single-file units may omit their path; use the same fallback as
+    # _insert_unit, without mutating the saved classification objects.
+    from types import SimpleNamespace
+    mapped_units = [SimpleNamespace(doc_id=u.doc_id,start_page=u.start_page,end_page=u.end_page,
+        source_path=getattr(u,'source_path','') or original_pdf,catalog_seq=u.catalog_seq) for u in inserted_units]
+    page_locations = _source_page_locations(mapped_units,doc_body_idx,cover_end_idx,toc_page_count,pagination_mode)
+    if (len(page_locations) != orig_included or
+            len({row['archive_page'] for row in page_locations}) != len(page_locations) or
+            any(not 1 <= row['archive_page'] <= merger.page_count for row in page_locations)):
+        conservation_ok = False
+        log('       [FAIL] 源页去向记录与实际插入数量不一致')
     order_issues = _verify_document_order(catalog, inserted_units, log=log, order_mode=order_mode)
     if order_issues:
         log("       [WARN] 文书顺序验证:")
@@ -991,4 +1022,5 @@ def build_full_archive(
         original_pages_included=orig_included,
         order_issues=order_issues,
         pagination={"mode":pagination_mode, "body_start":cover_end_idx+toc_page_count},
+        source_page_locations=page_locations,
     )

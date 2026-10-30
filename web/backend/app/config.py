@@ -8,6 +8,7 @@ from pathlib import Path
 from functools import lru_cache
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field
 from dotenv import dotenv_values
 
 
@@ -78,6 +79,12 @@ class Settings(BaseSettings):
     # Opt-in for a trusted workstation; a name is a profile selector, not proof of identity.
     name_login_enabled: bool = False
     allow_external_ai: bool = False
+    # User-approved DeepSeek ceiling (2026-10-30). An operator may reduce it,
+    # but cannot silently exceed the approved 20 dispatches per new task.
+    deepseek_request_limit: int = Field(default=20, ge=0, le=20)
+    # Optional tighter cross-provider ceiling. Local Ollama is not assigned
+    # the cloud limit. Both choices are frozen when a new task is created.
+    model_request_limit: int | None = Field(default=None, ge=0, le=100000)
     # Legacy initial default; the explicit administrator policy overrides it.
     # Deployment administrators may enforce this separate, non-overridable lock.
     external_ai_locked: bool = False

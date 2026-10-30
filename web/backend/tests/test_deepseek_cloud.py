@@ -139,6 +139,8 @@ async def test_generation_and_supplement_freeze_provider_and_require_version_con
         task = await db.get(ArchiveTask, first["id"])
         cfg = await profiles.task_config(db, task, actual_source_version=task.source_version)
         assert cfg["privacy"]["cloud_authorized"] is True
+        assert cfg['vision']['batch_policy']==task.execution_profile['_visual_batch_policy']
+        assert cfg['vision']['batch_policy']['classification_pages']==8
         task.status = TaskStatus.awaiting_review
         await db.commit()
     await configure(ctx, mode="glm_cloud", glm_api_key="unrelated-synthetic-key")
@@ -383,7 +385,7 @@ def test_parent_reuse_requires_matching_visual_workflow(tmp_path, monkeypatch, p
     profile = {"processing_mode":"deepseek_cloud","model":"deepseek-flash","workflow":"document_two_stage"}
     parent = SimpleNamespace(id=1,case_id="synthetic",source_manifest=rows[:1],manual_fields={"合同号":"人工保留"},execution_profile=profile)
     current = rows if added else rows[:1]
-    task = SimpleNamespace(source_manifest=current,execution_profile=profile)
+    task = SimpleNamespace(case_id='synthetic',source_manifest=current,execution_profile=profile)
     summary = {"visual":True,"model":"deepseek-flash", "analysis_version": VISUAL_ANALYSIS_VERSION}
     if previous_workflow is not None: summary["workflow"] = previous_workflow
     previous = fixture_analysis(paths[0], {"委托人":"虚构旧", "_agent_summary":summary})
@@ -416,7 +418,7 @@ def test_incremental_review_metadata_retains_parent_and_reassigns_doc_ids(tmp_pa
             for i,path in enumerate((old_path,new_path))]
     profile = {"processing_mode":"deepseek_cloud","model":"deepseek-flash","workflow":"document_two_stage"}
     parent = SimpleNamespace(id=1,case_id="fictional",source_manifest=rows[:1],manual_fields={},execution_profile=profile)
-    task = SimpleNamespace(source_manifest=rows,execution_profile=profile)
+    task = SimpleNamespace(case_id='fictional',source_manifest=rows,execution_profile=profile)
     reason = "selected_pages_only" if review_key == "_field_extraction_review" else "catalog_mapping_uncertain"
     def analysis(path):
         return fixture_analysis(path, {"委托人":"虚构甲", "_field_normalization_version":STRICT_EVIDENCE_VERSION, "_agent_summary":{"visual":True,"model":"deepseek-flash", "analysis_version": VISUAL_ANALYSIS_VERSION},

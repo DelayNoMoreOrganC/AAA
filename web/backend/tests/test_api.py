@@ -47,7 +47,7 @@ async def reset_database(monkeypatch):
         org = Org(name="测试律所")
         db.add(org)
         await db.flush()
-        db.add_all([User(username="admin", hashed_password=hash_password("test-only-admin-pass-2026"), role=Role.admin, org_id=org.id),
+        db.add_all([User(username="admin", hashed_password=hash_password("admin123"), role=Role.admin, org_id=org.id),
                     User(username="zgls", hashed_password=hash_password("zgls123"), role=Role.lawyer, org_id=org.id)])
         await db.commit()
     yield
@@ -60,7 +60,7 @@ async def client():
         yield ac
 
 
-async def _login(ac, username="admin", password="test-only-admin-pass-2026"):
+async def _login(ac, username="admin", password="admin123"):
     r = await ac.post("/api/auth/login", json={"username": username, "password": password})
     assert r.status_code == 200
     return r.json()["access_token"]
@@ -166,7 +166,7 @@ async def test_self_registration_creates_isolated_workspace(client):
 @pytest.mark.asyncio
 async def test_api_settings_are_isolated_per_account_in_same_org(client, monkeypatch):
     monkeypatch.setattr(get_settings(), "allow_external_ai", True)
-    admin_token = await _login(client, "admin", "test-only-admin-pass-2026")
+    admin_token = await _login(client, "admin", "admin123")
     lawyer_token = await _login(client, "zgls", "zgls123")
     admin_headers = {"Authorization": "Bearer " + admin_token}
     lawyer_headers = {"Authorization": "Bearer " + lawyer_token}
@@ -229,7 +229,7 @@ async def test_legacy_global_keys_are_only_inherited_by_admin(client):
         db.add(Setting(key="mineru_api_token", value="legacy-admin-ocr"))
         await db.commit()
 
-    admin_token = await _login(client, "admin", "test-only-admin-pass-2026")
+    admin_token = await _login(client, "admin", "admin123")
     lawyer_token = await _login(client, "zgls", "zgls123")
     admin_settings = await client.get(
         "/api/settings", headers={"Authorization": "Bearer " + admin_token}

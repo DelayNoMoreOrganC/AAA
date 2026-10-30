@@ -28,7 +28,7 @@ def test_legacy_non_workstation_mode_does_not_invent_a_version_requirement():
     assert analysis_reuse_compatible(SimpleNamespace(fields={}), {"extraction":{"mode":"legacy"}})
 
 
-@pytest.mark.parametrize("version", [None, "visual-analysis-v1", VISUAL_ANALYSIS_VERSION])
+@pytest.mark.parametrize("version", [None, "visual-analysis-v1", *[f"visual-analysis-v{i}" for i in range(4, 15)], VISUAL_ANALYSIS_VERSION])
 def test_visual_classification_version_is_required_even_when_field_rules_match(version):
     summary = {"visual": True, "model": "deepseek-flash", "workflow": "document_two_stage"}
     if version is not None:
@@ -47,7 +47,7 @@ def test_incompatible_legacy_machine_fields_are_not_relabeled_human(monkeypatch,
     fresh = fixture_analysis("fictional.pdf", {"委托人":"虚构甲", "_field_normalization_version":STRICT_EVIDENCE_VERSION})
     manual = {"结案小结":"", "合同号":"人工历史值", "_field_normalization_version":"strict-fields-v1"} if explicit_manual else {}
     parent = SimpleNamespace(id=1,case_id="fictional",source_manifest=None,manual_fields=manual)
-    task = SimpleNamespace(source_manifest=[{"file_id":"f1","path":"fictional.pdf","sha256":"a","doc_type":"default"}])
+    task = SimpleNamespace(case_id="fictional", source_version=1, source_manifest=[{"file_id":"f1","path":"fictional.pdf","sha256":"a","doc_type":"default"}])
     monkeypatch.setattr(workflow,"snapshot_exists",lambda *_:True)
     monkeypatch.setattr(workflow,"load_analysis",lambda *_:(old,{}))
     calls = []

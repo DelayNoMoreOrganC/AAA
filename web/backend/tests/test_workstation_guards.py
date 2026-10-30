@@ -32,7 +32,7 @@ async def test_first_run_requires_token_and_never_ships_accounts(client):
     assert not (DATA_DIR / 'setup.token').exists()
     assert (await client.get('/api/setup/status')).json() == {'required': False}
     assert await _login(client, 'owner', body['password'])
-    assert (await client.post('/api/auth/login', json={'username': 'admin', 'password': 'test-only-admin-pass-2026'})).status_code == 401
+    assert (await client.post('/api/auth/login', json={'username': 'admin', 'password': 'admin123'})).status_code == 401
 
 
 @pytest.mark.parametrize('url', ['https://api.deepseek.com', 'http://localhost:8000', 'http://127.0.0.1.evil.test', 'http://10.0.0.1', 'file:///test', 'http://user@127.0.0.1', 'http://127.0.0.1?url=https://example.com'])

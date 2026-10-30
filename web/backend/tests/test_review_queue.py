@@ -84,3 +84,42 @@ def test_nonblocking_rejections_remain_advisory_in_original_issues_and_queue_key
     assert len(queue) == 1 and len(value.issues) == 2
     value.issues[0]["message"] = "说明更新但仍是同一字段"
     assert build_review_queue(value)[0]["key"] == queue[0]["key"]
+
+
+def test_unique_field_source_and_quality_share_a_visit_but_not_a_resolution():
+    # Metadata protocol only, not a fictional recognition benchmark.
+    quality=issue('quality','ocr',file_id='a',page=2)
+    conflict=issue('field',field='案号',source={'file_id':'a','page':2})
+    value=task([quality,conflict]);before=deepcopy(value.__dict__)
+    first=build_review_queue(value)
+    assert len(first)==1 and first[0]['issue_ids']==['quality','field']
+    assert first[0]['field']=='案号' and first[0]['field_targets']
+    assert value.__dict__==before
+    conflict['detail']['fact_resolved']=True
+    after=build_review_queue(value)
+    assert after[0]['key']==first[0]['key'] and len(after[0]['reasons'])==2
+    assert quality['blocking'] and not value.fields.get('_issue_decisions')
+
+
+def test_shared_page_cannot_select_between_two_field_conflicts():
+    quality=issue('quality','ocr',file_id='a',page=2)
+    value=task([quality,issue('one',field='案号',source={'file_id':'a','page':2}),
+                issue('two',field='法院收案号',source={'file_id':'a','page':2})])
+    assert len(build_review_queue(value))==3
+
+
+def test_field_link_does_not_break_existing_classification_quality_group():
+    value=task([issue('quality','ocr',file_id='a',page=2),
+                issue('one',field='案号',source={'file_id':'a','page':2}),
+                issue('class','classification',file_id='a',page=2,page_start=2,page_end=3)])
+    grouped=build_review_queue(value)
+    assert len(grouped)==2
+    assert next(g for g in grouped if 'quality' in g['issue_ids'])['issue_ids']==['quality','class']
+
+
+def test_stale_reference_hash_cannot_link_quality_to_a_field():
+    value=task([issue('quality','ocr',file_id='a',page=2),
+                issue('one',field='案号',source={'file_id':'a','page':2,'source_sha256':'0'*64})])
+    value.source_manifest[0]['sha256']='1'*64
+    grouped=build_review_queue(value)
+    assert len(grouped)==2 and next(g for g in grouped if g['field'])['sources']==[]

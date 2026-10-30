@@ -204,6 +204,62 @@ class ArchiveTask(Base):
     assistant_drafts: Mapped[list["AssistantDraft"]] = relationship(back_populates="task", cascade="all, delete-orphan")
 
 
+class ExperienceVersion(Base):
+    """Immutable structured proposal; lifecycle updates use compare-and-swap."""
+    __tablename__ = "experience_versions"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    org_id: Mapped[str] = mapped_column(String(32), ForeignKey("orgs.id"), nullable=False, index=True)
+    author_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    case_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    source_task_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_decision_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    supersedes_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    scope: Mapped[str] = mapped_column(String(20), nullable=False, default="case")
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    payload_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    state: Mapped[str] = mapped_column(String(20), nullable=False, default="draft")
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class ExperienceOrigin(Base):
+    """Private correction evidence, never included in reusable rules/prompts."""
+    __tablename__ = "experience_origins"
+    experience_id: Mapped[str] = mapped_column(String(32), ForeignKey("experience_versions.id"), primary_key=True)
+    org_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    source_kind: Mapped[str] = mapped_column(String(20), nullable=False)
+    decision_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    source_version: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    record: Mapped[dict] = mapped_column(JSON, nullable=False)
+    record_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    verified_binding: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class ExperienceEvaluation(Base):
+    """Only a server evaluator writes receipts; no public 'passed' input."""
+    __tablename__ = "experience_evaluations"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    org_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    experience_id: Mapped[str] = mapped_column(String(32), ForeignKey("experience_versions.id"), nullable=False)
+    payload_digest: Mapped[str] = mapped_column(String(64), nullable=False)
+    evaluator_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    result: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
+class ExperienceEvent(Base):
+    __tablename__ = "experience_events"
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=_uuid)
+    org_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    experience_id: Mapped[str] = mapped_column(String(32), ForeignKey("experience_versions.id"), nullable=False)
+    actor_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    action: Mapped[str] = mapped_column(String(30), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
 class AssistantDraft(Base):
     """Private unsent text; clearing keeps a versioned tombstone."""
     __tablename__ = "assistant_drafts"

@@ -45,9 +45,11 @@ def build(sources, coverage=None):
     docs=[];conflicts=[]
     for (path,doc_id,kind),pages in groups.items():
         pages=sorted(pages,key=lambda s:s['page'])
-        last=pages[-1];dt=_date(last['text'])
+        last=pages[-1];dt=_date(last['text']) if last.get('evidence_kind') != 'visual-field-synthesis-v1' else None
         amounts=[]
         for page in pages:
+            if page.get('evidence_kind') == 'visual-field-synthesis-v1':
+                continue  # A checked field quote is not a full-page amount/date source.
             text=compact(page['text'])
             for match in re.finditer(r'(?:贷款本金|尚欠本金|借款本金)[:：]?([0-9]+(?:\.[0-9]+)?)元',text):
                 amounts.append({'value':match[1],'source_id':page['id'],'page':page['page'],
@@ -69,7 +71,8 @@ def build(sources, coverage=None):
                             'date':d['document_date']} for d in dated],
         'undated_documents':[d['doc_id'] for d in docs if not d['document_date']],
         'conflicts':conflicts,
-        'field_sources':{field:[s['id'] for s in sources if field not in ('案情简介','案件或项目名称') or s['kind'] in INTAKE]
+        'field_sources':{field:[s['id'] for s in sources if field in s.get('allowed_fields', (field,))
+                              and (field not in ('案情简介','案件或项目名称') or s['kind'] in INTAKE)]
                          for field in ('案情简介','案件或项目名称','审（办）结果','结案小结')}}
 
 def public(ledger):

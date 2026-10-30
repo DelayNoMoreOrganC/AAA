@@ -11,6 +11,7 @@ from requests.adapters import HTTPAdapter
 ENDPOINT = "https://api.deepseek.com/chat/completions"
 MODEL = "deepseek-flash"
 MAX_RESPONSE_BYTES = 2_000_000
+MAX_REQUEST_BYTES = 48 * 1024 * 1024
 
 _ERROR_MESSAGES = {
     "KEY_MISSING": "尚未配置 DeepSeek 标准 API 密钥",
@@ -20,6 +21,7 @@ _ERROR_MESSAGES = {
     "RATE_LIMITED": "DeepSeek API 配额或并发受限，请稍后手动重试",
     "HTTP_FAILED": "DeepSeek API 请求未成功，已停止且未切换服务商",
     "RESPONSE_TOO_LARGE": "DeepSeek 响应超过安全大小限制",
+    "REQUEST_TOO_LARGE": "图像请求超过 DeepSeek 请求体限制，已停止发送；请缩小处理批次",
     "INCOMPLETE": "DeepSeek 未完整返回结果，请缩小材料批次后重试",
     "INVALID_RESPONSE": "DeepSeek 未返回有效 JSON 归档操作",
     "CONNECTION_FAILED": "DeepSeek 连接或响应读取失败，已停止且未切换服务商",
@@ -104,6 +106,8 @@ class DeepSeekVisionClient:
         self.metrics["model_requests"] += 1
         started = perf_counter()
         try:
+            if len(json.dumps(body,ensure_ascii=True,allow_nan=False).encode('utf-8')) > MAX_REQUEST_BYTES:
+                raise DeepSeekVisionError('REQUEST_TOO_LARGE')
             with requests.Session() as session:
                 session.trust_env = False
                 session.mount("https://", HTTPAdapter(max_retries=0))

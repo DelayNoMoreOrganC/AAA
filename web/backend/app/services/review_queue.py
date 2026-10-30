@@ -36,6 +36,8 @@ def build_review_queue(task, issues=None):
         # Conflicting identities must not borrow an in-case file ID.
         if source and ref.get("source_path") and _path(ref["source_path"]) != _path(source.get("path")):
             return None
+        if source and ref.get("source_sha256") and ref["source_sha256"] != source.get("sha256"):
+            return None
         page = ref.get("page", ref.get("page_start"))
         if source and type(page) is int and 1 <= page <= source["pages"]:
             return {"file_id": source["file_id"], "page": page, "filename": source.get("filename", "")}
@@ -43,6 +45,8 @@ def build_review_queue(task, issues=None):
 
     def locations(detail, field):
         refs = [detail]
+        if isinstance(detail.get('source'),dict):
+            refs.append(detail['source'])
         for key in ("sources", "pages", "candidates", "references"):
             value = detail.get(key)
             if isinstance(value, list):
@@ -58,6 +62,36 @@ def build_review_queue(task, issues=None):
         return list(found.values())
 
     entries = (task.issues or []) if issues is None else issues
+
+    def document_scope(detail, target, start, end):
+        span = detail.get("document_span")
+        if not isinstance(span, dict) or not target or span.get("file_id") != target["file_id"]:
+            return None
+        lo, hi = span.get("page_start"), span.get("page_end")
+        if not all(type(n) is int for n in (lo, hi, start, end)):
+            return None
+        if not 1 <= lo <= start <= end <= hi <= by_id[target["file_id"]]["pages"]:
+            return None
+        return span
+
+    def evidence_scope(span, target):
+        if not span or span.get("doc_type") != "evidence":
+            return None
+        matches = []
+        for bundle in fields.get("_evidence_bundles") or []:
+            if not isinstance(bundle, dict) or len(set(bundle.get("anchors") or [])) < 2:
+                continue
+            from ..core.v4_bridge import load
+            if not load('evidence_group_state').matches_span(bundle,span):
+                continue
+            source = by_path.get(_path(bundle.get("source_path")))
+            lo, hi = bundle.get("start_page"), bundle.get("end_page")
+            if (source and source["file_id"] == target["file_id"]
+                    and type(lo) is int and type(hi) is int
+                    and 1 <= lo <= span["page_start"] <= span["page_end"] <= hi <= source["pages"]
+                    and span.get("doc_id") in (bundle.get("doc_ids") or [])):
+                matches.append((lo, hi))
+        return matches[0] if len(matches) == 1 else None
     classification_spans=set()
     for entry in entries:
         detail=entry.get('detail') if isinstance(entry,dict) else None
@@ -65,6 +99,22 @@ def build_review_queue(task, issues=None):
         target=anchor(detail);start=detail.get('page_start',detail.get('page'));end=detail.get('page_end',start)
         if target and type(start) is int and type(end) is int and start==target['page'] and 1<=start<=end<=by_id[target['file_id']]['pages']:
             classification_spans.add((target['file_id'],start,end))
+    # Source quality and a field conflict on that exact page can be handled in
+    # one visit. Do not pick between multiple fields, or break an existing
+    # whole-document/classification/evidence-group review. Resolved field
+    # conflicts remain linkable so saving the value does not eject the reader
+    # from a group whose quality question still needs explicit acknowledgement.
+    field_sources = {}
+    for entry in entries:
+        detail = entry.get('detail') if isinstance(entry,dict) else None
+        if (not isinstance(detail,dict) or entry.get('kind')!='field_conflict'
+                or not entry.get('blocking') or not isinstance(entry.get('id'),str)):
+            continue
+        field = detail.get('field')
+        if not isinstance(field,str) or not field.strip() or field.startswith('_'):
+            continue
+        for ref in locations(detail,field):
+            field_sources.setdefault((ref['file_id'],ref['page']),set()).add(field)
     groups = {}
     for entry in entries:
         if not isinstance(entry, dict) or not entry.get("blocking") or not isinstance(entry.get("id"), str):
@@ -75,6 +125,15 @@ def build_review_queue(task, issues=None):
         target = anchor(detail)
         start = detail.get("page_start", detail.get("page"))
         end = detail.get("page_end", start)
+        presentation_scope = ""
+        if entry.get('kind')=='ocr' and not field and target and start==end==target['page']:
+            candidates = field_sources.get((target['file_id'],target['page']),set())
+            has_classification = any(file_id==target['file_id'] and lo<=start<=hi
+                                     for file_id,lo,hi in classification_spans)
+            span = document_scope(detail,target,start,end)
+            if len(candidates)==1 and not has_classification and not evidence_scope(span,target):
+                field = next(iter(candidates))
+                presentation_scope = 'field_source'
         if field:
             identity = ["field", field]
         elif (entry.get("kind") in ("ocr", "classification", "classification_stale") and target
@@ -82,7 +141,16 @@ def build_review_queue(task, issues=None):
             containing=[span for span in classification_spans if span[0]==target['file_id'] and span[1]<=start<=end<=span[2]]
             if entry.get('kind')=='ocr' and len(containing)==1:
                 _,start,end=containing[0]
+            span = document_scope(detail, target, start, end)
+            if span:
+                start, end = span["page_start"], span["page_end"]
+                presentation_scope = "document"
             identity = ["source", target["file_id"], start, end]
+            bundle = evidence_scope(span, target)
+            if bundle:
+                start, end = bundle
+                identity = ["evidence_bundle", target["file_id"], start, end]
+                presentation_scope = "evidence_bundle"
         else:
             identity = ["issue", entry["id"]]
         key = "review:" + hashlib.sha256(json.dumps(identity, ensure_ascii=False).encode()).hexdigest()[:20]
@@ -93,6 +161,10 @@ def build_review_queue(task, issues=None):
             "issue_ids": [], "catalog_seqs": [], "reasons": [], "field": field,
             "template_names": list(dict.fromkeys(row["template_name"] for row in field_targets)),
             "field_targets": field_targets, "sources": [], "blocking": True})
+        if presentation_scope:
+            group['presentation_scope'] = presentation_scope
+            if presentation_scope != 'field_source':
+                group.update(page_start=start, page_end=end)
         if entry["id"] not in group["issue_ids"]:
             group["issue_ids"].append(entry["id"])
             group["reasons"].append({"id": entry["id"], "message": entry.get("message", "待核对"), "kind": entry.get("kind", "")})
@@ -106,6 +178,12 @@ def build_review_queue(task, issues=None):
         kinds={row['kind'] for row in group['reasons']}
         if {'ocr','classification'}<=kinds:
             group['title']='核对同一文书的归档位置与清晰度'
+        elif group['field'] and {'ocr','field_conflict'}<=kinds:
+            group['title']=f"核对「{group['field']}」与来源页"
+        if group.get('presentation_scope') == 'evidence_bundle':
+            group['title'] = f"证据清单及附件 · 第 {group['page_start']}—{group['page_end']} 页"
+        elif group.get('presentation_scope') == 'document' and len(group['issue_ids']) > 1:
+            group['title'] = f"同一文书 · 第 {group['page_start']}—{group['page_end']} 页"
         group['sources'].sort(key=lambda row:(row['file_id'],row['page']))
 
     required, other = [], []

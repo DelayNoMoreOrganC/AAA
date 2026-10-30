@@ -14,6 +14,7 @@ logger = logging.getLogger("v6.task")
 # Core callbacks are untrusted free text: some legacy callers embed exceptions
 # or filenames. Admit only complete fixed events and bounded integer counters.
 _FIXED_LOGS = frozenset({
+    "填写规则已更新，正在复核受影响栏目",
     "从已保存分析检查点恢复，无需重复识别材料",
     "复用未变化材料的分析快照；保留人工核对内容",
     "咨询代书补件需要重新核对全卷业务日期顺序；保留已人工核对字段",

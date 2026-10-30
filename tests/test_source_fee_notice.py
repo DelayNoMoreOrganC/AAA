@@ -141,3 +141,52 @@ def test_derived_fee_uses_current_proof_when_legacy_record_is_preserved():
 @pytest.mark.parametrize('version',[None,True,0,3,'2'])
 def test_unknown_summary_version_is_not_accepted(version):
     assert candidate(NOTICE,FIELDS,summary_version=version) is None
+
+
+CHECKED_NOTICE = '''委托代理通知书
+现决定将星河演示公司与虚构乙、虚构丙买卖合同纠纷案件交由贵所代理。
+一、按照以下计费方式计算律师费：
+●固定收费方式：固定律师费：9000元。
+□浮动费率方式：费率__%。
+二、律师费扣减标准如下：延迟办理依下列条件扣减10%。
+三、债权转让时按另列条件计费，具体见续页。
+'''
+
+
+def test_marked_fixed_notice_preserves_adjustments_and_optional_cell_source():
+    from form_cell_contracts import optional_output
+    fields=deepcopy(FIELDS)
+    assert recall(fields,{('notice.pdf',1):CHECKED_NOTICE})==1
+    value=fields['收费标准'];ref=fields['_provenance']['收费标准'][0]
+    assert value=='固定9000元\n条件见通知书'
+    assert ref['selected_mark']=='●' and ref['selection_layout']=='marked_fixed_notice_v1'
+    assert '扣减10%' in ref['fee_terms'] and '债权转让' in ref['fee_terms']
+    assert ref['quote']==CHECKED_NOTICE
+    assert optional_output('收费标准',value,fields)['value']==value
+    assert reference_note(fields)=='扣减、债权转让等计费条件详卷内委托代理通知书及续页。'
+    assert set(fields)-set(FIELDS)=={'收费标准','_provenance','_field_conflicts','_fact_review'}
+    assert not candidate(CHECKED_NOTICE,FIELDS,summary_version=1)
+
+
+@pytest.mark.parametrize('change',[
+    ('●',''), ('●','□'), ('●','?'), ('□浮动','●浮动'),
+    ('费率__%','费率__2%'), ('固定律师费：9000元','固定律师费：元'),
+    ('虚构乙、虚构丙','虚构乙'), ('扣减10%','扣减10%，通知书已作废'),
+])
+def test_fee_choice_missing_ambiguous_or_wrong_identity_is_not_inferred(change):
+    assert candidate(CHECKED_NOTICE.replace(*change),FIELDS) is None
+
+
+def test_literal_fee_cannot_drop_notice_conditions_to_fit_cell():
+    from fact_evidence import validate_fact
+    assert not validate_fact('收费标准','9000元','固定收费方式：固定律师费：9000元。',CHECKED_NOTICE)
+    assert not validate_fact('收费标准','固定律师费：9000元','固定收费方式：固定律师费：9000元。',CHECKED_NOTICE)
+    assert candidate(CHECKED_NOTICE,FIELDS) is not None
+
+
+def test_notice_selection_or_deduction_edit_invalidates_existing_reference():
+    fields=deepcopy(FIELDS);recall(fields,{('notice.pdf',1):CHECKED_NOTICE})
+    old=deepcopy(fields['_provenance']['收费标准'][0])
+    for changed in (CHECKED_NOTICE.replace('●',''),CHECKED_NOTICE.replace('扣减10%','扣减30%')):
+        ref={**old,'quote':changed}
+        assert not reference_supported('收费标准',fields['收费标准'],ref,fields)

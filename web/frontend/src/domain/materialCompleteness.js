@@ -16,13 +16,13 @@ export function materialSupplementState(catalog){
   // Match the server's formal gate: recognizing a required document does not
   // by itself verify its execution/completeness. Unknown applicability must
   // not be presented as a mandatory supplement or silently called optional.
-  const missing=checks.filter(item=>item.check_kind==='source_material'&&item.applicable!==false&&
+  const missing=checks.filter(item=>item.check_kind==='source_material'&&item.applicable!==false&&item.status!=='processing_incomplete'&&
     (applicableRequired(item)?item.status!=='verified':!['recognized','verified'].includes(item.status)))
   const optional=missing.filter(item=>item.requirement==='optional'&&item.legal_requirement_verified===true)
   const required=missing.filter(applicableRequired)
   const applicability=missing.filter(item=>!required.includes(item)&&!optional.includes(item))
   const unknown=new Map()
   for(const row of rows)for(const source of Array.isArray(row?.unclassified_sources)?row.unclassified_sources:[]){if(source?.file_id&&Number.isSafeInteger(source.page)&&source.page>0)unknown.set(source.file_id+':'+source.page,source)}
-  return {modern,required,applicability,optional,unknown:[...unknown.values()],executionReview:checks.some(item=>item.check_kind==='execution_review')}
+  return {modern,required,applicability,optional,pendingProcessing:checks.filter(item=>item.status==='processing_incomplete'),unknown:[...unknown.values()],executionReview:checks.some(item=>item.check_kind==='execution_review')}
 }
 export function materialSourceLabel(source){return (source.filename||'来源材料')+' · 第 '+(source.page_start||source.page)+(source.page_end>source.page_start?'—'+source.page_end:'')+' 页'}

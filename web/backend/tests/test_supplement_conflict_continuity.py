@@ -23,7 +23,7 @@ def extend(previous, rows, new, parent_issues, monkeypatch, value=None, *, chang
     if changed:
         current = [dict(row, sha256="replacement") for row in rows] + [new]
     parent = SimpleNamespace(id=1, case_id="fictional", source_manifest=rows, manual_fields={}, issues=parent_issues)
-    task = SimpleNamespace(source_manifest=current)
+    task = SimpleNamespace(source_manifest=current, case_id='fictional')
     files = [SimpleNamespace(id=row["file_id"], abs_path=row["path"], doc_type="default") for row in current]
     calls = []
     def analyze(case_type, *, sources, **kwargs):

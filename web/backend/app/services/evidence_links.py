@@ -20,6 +20,27 @@ def supporting_refs(ref, fields, source_manifest):
     """
     if not isinstance(ref, dict):
         return None
+    visual = load('visual_fact_readback')
+    if visual.has_readback(ref):
+        original = ref
+        receipt = ref.get('visual_readback')
+        if not isinstance(receipt, dict) or not isinstance(receipt.get('body'), dict):
+            return None
+        field = receipt['body'].get('field')
+        if not isinstance(field, str):
+            return None
+        if ref.get('method') == 'derived_form_draft':
+            # A derived sentence has a different value. Verify its unchanged
+            # original field rather than treating that sentence as a literal.
+            if ref.get('input_field') != field or ref.get('input_method') != 'visual_agent_local_evidence':
+                return None
+            originals = (fields.get('_provenance') or {}).get(field) or []
+            originals = [originals] if isinstance(originals, dict) else originals
+            original = next((item for item in originals if isinstance(item, dict)
+                and item.get('visual_readback') == ref.get('visual_readback')
+                and item.get('value') == fields.get(field)), None)
+        if not visual.reference_supported(original, field, fields.get(field), source_manifest):
+            return None
     if ref.get('binding') == 'model_form_synthesis':
         module = load('form_synthesis')
         if not module.scope_supported(fields, source_manifest):
@@ -48,7 +69,7 @@ def supporting_refs(ref, fields, source_manifest):
     elif ref.get('binding')=='court_party_details':
         supports=load('court_roster_details').current_detail_support(ref,fields)
     elif ref.get('binding')=='selected_notice_fee':
-        supports=load('source_fee_notice').current_support(ref,fields)
+        supports=load('source_fee_notice').current_support(ref,fields,source_manifest)
     elif ref.get('binding')=='court_report_summary':
         supports=load('court_report_summary').current_support(ref,fields)
     elif ref.get('derivation') == 'labelled_poa_roster':

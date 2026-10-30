@@ -68,6 +68,8 @@ def test_every_source_page_physically_appears_once(tmp_path, merge, order_mode):
         text = "\n".join(page.get_text() for page in document)
     for page in range(3):
         assert text.count(f"fictional-source-{page}") == 1
+    assert [r['source_page'] for r in result.source_page_locations]==[1,2,3]
+    assert [r['archive_page'] for r in result.source_page_locations]==[2,3,4]
 
 
 def test_gap_is_rejected(tmp_path, merge):
@@ -105,6 +107,16 @@ def test_source_manifest_catches_a_file_without_units(tmp_path, merge):
     )
     assert result.success is False
     assert not output.exists()
+
+
+@pytest.mark.parametrize('mode',['draft','body'])
+def test_trace_accounts_for_reordered_material_and_printed_page_mode(tmp_path,merge,mode):
+    source=_pdf(tmp_path/'source.pdf',2)
+    units=[_unit(0,source,0,0,14),_unit(1,source,1,1,7)]
+    result,_=merge(source,units,order_mode='catalog',pagination_mode=mode)
+    assert result.success
+    assert [(r['source_page'],r['archive_page']) for r in result.source_page_locations]==[(2,2),(1,3)]
+    assert [r['body_page'] for r in result.source_page_locations]==([1,2] if mode=='body' else [None,None])
 
 
 def test_no_units_cannot_succeed_with_only_a_toc(tmp_path, merge):

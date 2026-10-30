@@ -96,6 +96,7 @@ class CaseTaskSummary(BaseModel):
     source_changed: bool = False
     revision: int = 1
     formal_ready: bool = False
+    form_policy_update: Optional[dict] = None
 
 
 class CaseOut(BaseModel):
@@ -175,12 +176,14 @@ class TaskOut(BaseModel):
     artifacts: list[dict] = Field(default_factory=list)
     can_resume: bool = False
     execution_profile: Optional[dict] = None
+    form_policy_update: Optional[dict] = None
 
 
 class GenerateRequest(BaseModel):
     model_config = {"extra": "forbid"}
     order_mode: Literal["catalog", "original"] = "catalog"
     parent_task_id: Optional[int] = None
+    form_policy_token: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     idempotency_key: Optional[str] = Field(default=None, min_length=8, max_length=128)
     cloud_consent: bool = Field(default=False, strict=True)
     expected_processing_mode: Optional[Literal["local", "ollama_local", "cloud", "glm_cloud", "deepseek_cloud"]] = None
@@ -188,6 +191,7 @@ class GenerateRequest(BaseModel):
 
 class ResumeRequest(BaseModel):
     model_config = {"extra": "forbid"}
+    form_policy_token: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     cloud_consent: bool = Field(default=False, strict=True)
     expected_processing_mode: Optional[Literal["local", "ollama_local", "cloud", "glm_cloud", "deepseek_cloud"]] = None
 

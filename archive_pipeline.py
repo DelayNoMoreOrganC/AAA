@@ -1436,6 +1436,7 @@ def assemble_archive(
         original_pages_included=getattr(result, "original_pages_included", 0),
         order_issues=getattr(result, "order_issues", None),
         pagination=getattr(result, "pagination", None),
+        source_page_locations=getattr(result, "source_page_locations", None),
     )
 
 

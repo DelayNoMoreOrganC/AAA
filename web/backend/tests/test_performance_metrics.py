@@ -33,7 +33,7 @@ def test_reuse_and_supplement_never_relabel_previous_runtime(monkeypatch, supple
                              compute_missing_items=pipeline.compute_missing_items)
     rows = [old, new] if supplement else [old]
     parent = SimpleNamespace(id=1, case_id="fictional", manual_fields={}, source_manifest=[old])
-    task = SimpleNamespace(source_manifest=rows)
+    task = SimpleNamespace(case_id="fictional", source_manifest=rows)
     files = [SimpleNamespace(id=r["file_id"], abs_path=r["path"], doc_type=r["doc_type"]) for r in rows]
     result, _, _ = workflow.analyze_with_parent(engine, task, parent, files,
         {"workflow_case_type": "civil"}, "fictional-org", lambda _: None)
@@ -72,7 +72,7 @@ def test_historical_manual_diagnostics_never_override_reanalysis(monkeypatch, le
     parent = SimpleNamespace(id=1, case_id="fictional",
         source_manifest=None if legacy_parent else [old],
         manual_fields={} if legacy_parent else dict(previous.fields))
-    task = SimpleNamespace(source_manifest=[changed])
+    task = SimpleNamespace(case_id="fictional", source_manifest=[changed])
     files = [SimpleNamespace(id="old", abs_path="fictional.pdf", doc_type="default")]
     result, manual, conflicts = workflow.analyze_with_parent(
         SimpleNamespace(analyze_archive=analyze), task, parent, files,

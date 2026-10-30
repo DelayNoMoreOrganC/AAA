@@ -115,6 +115,9 @@ def apply_decisions(analysis, manifest, records, stage=""):
     analysis.fields[DECISIONS] = copy.deepcopy(records)
     analysis.fields[REVIEW] = stale
     analysis.fields[DIGEST] = classification_digest(analysis, manifest)
+    if '_evidence_bundles' in analysis.fields:
+        from evidence_group_state import bind_groups
+        analysis.fields['_evidence_bundles'] = bind_groups(analysis.fields['_evidence_bundles'],analysis.doc_spans)
     refresh_catalog(analysis)
     return analysis
 

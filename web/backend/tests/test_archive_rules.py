@@ -1,6 +1,19 @@
 from app.services.archive_rules import get_catalog_rules, get_rule_readiness
 
 
+def test_budget_unread_pages_are_processing_gaps_not_missing_materials():
+    from types import SimpleNamespace as NS
+    from app.services.archive_rules import material_completeness
+    stopped={'status':'incomplete','unclassified_pages':[{'source_path':'protocol.pdf','page':2}]}
+    analysis=NS(case_type='civil',doc_spans=[],fields={'_request_budget_stop':stopped})
+    checks=material_completeness(analysis)['checks']
+    source_checks=[row for row in checks if row['check_kind']=='source_material']
+    assert source_checks and all(row['status']=='processing_incomplete' for row in source_checks)
+    assert all(row['material_absence_proven'] is False for row in source_checks)
+    analysis.fields={}
+    assert any(row['status']=='missing' for row in material_completeness(analysis)['checks'])
+
+
 def test_existing_templates_do_not_claim_formal_guangdong_compliance():
     for kind in ("civil", "criminal", "admin", "nonlit", "counsel", "arbitration", "consultation"):
         readiness = get_rule_readiness(kind)

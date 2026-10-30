@@ -109,11 +109,23 @@ def _accepted(fields, key, manual, scope):
         return "", []
     accepted = []
     for ref in matching:
+        if ref.get('quote_alignment'):
+            source = scope.get(_path(ref.get('source_path'))) or {}
+            if not ref.get('source_sha256') or ref['source_sha256'] != source.get('sha256'):
+                continue
+        from visual_fact_readback import has_readback, reference_supported as visual_supported
+        if has_readback(ref) and not visual_supported(ref, key, value, list(scope.values())):
+            continue
         if key in ('应收业务费', '已收业务费', '尚欠业务费', '应退业务费') and ref.get('binding') != 'case_fee_settlement':
             continue
         from source_engagement_evidence import poa_reference_supported
         literal = (_compact(value) in _compact(ref.get('quote','')) if not ref.get('derivation')
                    else poa_reference_supported(key,value,ref,fields))
+        if has_readback(ref) and not ref.get('derivation'):
+            # The receipt already checks normalized inclusion and field meaning
+            # against both full-page reads. Do not reintroduce a weaker,
+            # whitespace-only comparison that rejects equivalent typography.
+            literal = True
         if ref.get('derivation')=='court_party_details':
             from court_roster_details import reference_supported
             literal=reference_supported(key,value,ref,fields)
@@ -151,6 +163,10 @@ def _accepted(fields, key, manual, scope):
                 continue
             item = {"field": key, "method": ref["method"], "value": value,
                     "source_path": ref["source_path"], "page": ref["page"], "quote": ref["quote"]}
+            if has_readback(ref):
+                item = {**deepcopy(ref), 'field': key}
+            if ref.get('quote_alignment'):
+                item = {**deepcopy(ref), 'field': key}
             if ref.get('derivation') in ('selected_notice_fee','court_report_summary','pleading_parties','case_fee_settlement','batch_engagement_intake'):
                 item=deepcopy(ref)
             if isinstance(ref.get("subject"), str):

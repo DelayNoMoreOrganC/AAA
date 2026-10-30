@@ -89,8 +89,13 @@ def field_assurance(key, value, fields, *, source_key=None, source_manifest=(), 
         if actual_key in ('应收业务费', '已收业务费', '尚欠业务费', '应退业务费') and ref.get('binding') != 'case_fee_settlement':
             continue  # Raw amount candidates have not passed case identity.
         from ..core.v4_bridge import load
+        visual = load('visual_fact_readback')
+        if visual.has_readback(ref) and not visual.reference_supported(ref, actual_key, value, source_manifest):
+            continue
         supported = (_compact(value) in _compact(ref.get('quote','')) if not ref.get('derivation')
                      else load('source_engagement_evidence').poa_reference_supported(actual_key,value,ref,fields))
+        if visual.has_readback(ref) and not ref.get('derivation'):
+            supported = True  # Full semantic/source-bound receipt checked above.
         if ref.get('derivation')=='court_party_details':
             supported=load('court_roster_details').reference_supported(actual_key,value,ref,fields)
         if ref.get('derivation')=='selected_notice_fee':

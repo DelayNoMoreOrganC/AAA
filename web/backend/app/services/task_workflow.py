@@ -69,6 +69,18 @@ def enrich_classification_issues(issues, doc_spans, source_manifest):
         source = sources.get(os.path.normcase(os.path.abspath(path))) if path else None
         if source:
             detail.update(file_id=source["file_id"], filename=source["filename"])
+            # Preserve the exact problem page, but associate it with one whole
+            # document even when that document has no classification warning.
+            start, end = detail.get("page_start"), detail.get("page_end")
+            matches = [u for u in doc_spans or []
+                       if os.path.normcase(os.path.abspath(u.source_path or "")) == os.path.normcase(os.path.abspath(path))
+                       and type(start) is int and type(end) is int
+                       and 1 <= u.start_page + 1 <= start <= end <= u.end_page + 1 <= source["pages"]]
+            if len(matches) == 1:
+                u = matches[0]
+                detail["document_span"] = {"doc_id": u.doc_id, "file_id": source["file_id"],
+                    "page_start": u.start_page + 1, "page_end": u.end_page + 1,
+                    "doc_type": u.doc_type, "catalog_seq": u.manual_catalog_seq if u.manual_catalog_seq is not None else u.catalog_seq}
     return result
 
 
@@ -82,7 +94,8 @@ def _evidence_ocr_is_advisory(entry, analysis):
     unit = next((u for u in analysis.doc_spans or [] if u.source_path == path and u.start_page+1 <= page <= u.end_page+1), None)
     if unit is None or unit.doc_type != 'evidence' or (unit.confidence < .85 and unit.manual_catalog_seq is None):
         return False
-    if not any(g.get('source_path') == path and any(e.get('status') == 'matched_range'
+    from ..core.v4_bridge import load
+    if not any(load('evidence_group_state').matches_unit(g,unit) and g.get('source_path') == path and any(e.get('status') == 'matched_range'
         and unit.doc_id in e.get('doc_ids',[]) for e in g.get('entries',[])) for g in fields.get('_evidence_bundles',[])):
         return False
     def uses(value):
@@ -99,6 +112,11 @@ def _evidence_ocr_is_advisory(entry, analysis):
 
 def analysis_issues(analysis, source_manifest=None):
     result = []
+    budget_stop=(analysis.fields or {}).get('_request_budget_stop')
+    if isinstance(budget_stop,dict) and budget_stop.get('status')=='incomplete':
+        result.append(issue('processing_budget',
+            '本任务额度范围内仍有识别或填写未完成；可查看草稿，不能确认定稿。这不是材料缺失，请先由管理员核对未完成范围。',
+            detail=copy.deepcopy(budget_stop)))
     for entry in (analysis.fields or {}).get("_field_conflicts", []) or []:
         if isinstance(entry, dict):
             if entry.get('resolution_method') == 'case_timeline_summary':
@@ -250,13 +268,31 @@ def analysis_issues(analysis, source_manifest=None):
         return False
     # Keep the original refusal in audit metadata, but do not tell the user a
     # value remains unaccepted after a current two-source check accepted it.
-    refused = [entry for entry in refused if not linked_now(entry) and not recalled_now(entry)]
+    def targeted_now(entry):
+        from ..core.v4_bridge import load
+        from .evidence_links import supporting_refs
+        fields = analysis.fields or {}
+        ref = load('fact_review_resolution').current_targeted_reference(entry, fields, source_manifest)
+        return ref is not None and supporting_refs(ref, fields, source_manifest or []) is not None
+    refused = [entry for entry in refused if not linked_now(entry) and not recalled_now(entry) and not targeted_now(entry)]
     if refused:
         # Rejected proposals never became facts. One advisory summary avoids
         # making the user approve every hallucination; empty-case, actual
         # conflicts and OCR problems retain their independent blocking checks.
-        result.append(issue("fact_review", f"{len(refused)} 项候选事实依据不足，未采纳，已保留原值和材料；如需补录可展开原件核对",
-                            detail={"candidate_count":len(refused), "candidates":refused}, blocking=False))
+        located = [r for r in refused if isinstance(r,dict) and type(r.get('field')) is str and r['field']
+                   and type(r.get('source_path')) is str and r['source_path'] and type(r.get('page')) is int and r['page']>0]
+        field_sources = {(r['field'],r['source_path'],r['page']) for r in located}
+        text_mismatches = {(r['field'],r['source_path'],r['page']) for r in located
+                           if r.get('verification_code')=='quote_not_exact_in_cached_text'}
+        message = (f"{len(text_mismatches)} 项字段来源的视觉文字与本地核对未一致，候选尚未采纳"
+                   if text_mismatches else f"{len(field_sources)} 项字段来源依据尚未确认，候选未采纳"
+                   if field_sources else "部分候选格式或来源无效，未采纳")
+        if text_mismatches and field_sources-text_mismatches:
+            message += f"；另有 {len(field_sources-text_mismatches)} 项待核"
+        result.append(issue("fact_review", message,
+                            detail={"candidate_count":len(refused), "field_source_count":len(field_sources),
+                                    "text_mismatch_count":len(text_mismatches), "unlocated_count":len(refused)-len(located), "candidates":refused,
+                                    "material_absence_proven":False}, blocking=False))
     reviews = []
     for entry in (analysis.fields or {}).get("_field_extraction_review") or []:
         if (isinstance(entry, dict) and entry.get("reason_code") in ("document_operation_limit", "selected_pages_only")
@@ -298,7 +334,7 @@ def analysis_issues(analysis, source_manifest=None):
                 and type(ref.get("page")) is int and ref["page"] > 0
                 and isinstance(ref.get("quote"), str) and project in ref["quote"]))
         for ref in project_refs)
-    if not project_fact and not any(isinstance(value, str) and value.strip() for key, value in current.items() if key in business_fields):
+    if not budget_stop and not project_fact and not any(isinstance(value, str) and value.strip() for key, value in current.items() if key in business_fields):
         result.append(issue("empty_fields", "未提取到可用案件字段，请检查材料后填写系统表"))
     return enrich_classification_issues(result, analysis.doc_spans, source_manifest)
 
@@ -311,6 +347,9 @@ def unresolved_issues(issues, fields, *, task=None):
     for item in issues or []:
         if not item.get("blocking"):
             continue
+        if item.get('kind')=='processing_budget':
+            result.append(item)
+            continue  # Acknowledging a warning cannot complete skipped work.
         if item.get("kind") == "field_conflict":
             if not fact_conflict_resolved(task, item.get("detail"), fields=fields):
                 result.append(item)
@@ -323,8 +362,11 @@ def unresolved_issues(issues, fields, *, task=None):
 
 
 def merge_manual_fields(analysis, manual_fields, *, evidence_version=None):
+    from agent_trace import RESERVED_KEYS
     conflicts = []
     for key, value in (manual_fields or {}).items():
+        if key in RESERVED_KEYS:
+            continue  # Historical machine traces cannot become human overrides.
         predicted = analysis.fields.get(key)
         if not key.startswith("_") and predicted not in (None, "", value):
             detail = {"field": key, "saved": value, "new": predicted}
@@ -345,7 +387,10 @@ def merge_manual_fields(analysis, manual_fields, *, evidence_version=None):
 
 def mark_snapshot_metrics_reused(analysis):
     """No analysis/model call occurred while restoring this checkpoint."""
+    from form_synthesis import retain_policy_attempt_history
+    retain_policy_attempt_history(analysis.fields)
     analysis.fields["_analysis_metrics"] = {"scope": "this_analysis_call", "analysis_status": "snapshot_reused"}
+    analysis.fields.pop('_form_policy_repair', None)
     if isinstance(analysis.fields.get("_agent_summary"), dict):
         analysis.fields["_agent_summary"] = dict(analysis.fields["_agent_summary"])
         analysis.fields["_agent_summary"].pop("this_run_metrics", None)
@@ -369,6 +414,19 @@ def analysis_reuse_compatible(analysis, config):
     if visual != (summary.get("visual") is True):
         return False
     if visual:
+        from agent_experience import require_context
+        experience = require_context(config.get("_experience_context"))
+        recorded = (analysis.fields or {}).get("_experience_policy")
+        if recorded is not None and not isinstance(recorded, dict):
+            return False
+        if experience is not None:
+            if recorded is None:
+                if experience.snapshot["rules"] or experience.snapshot["conflicts"]:
+                    return False
+            elif not isinstance(recorded, dict) or recorded.get("snapshot_sha256") != experience.identity:
+                return False
+        elif recorded and recorded.get("rule_count", 0):
+            return False
         from visual_archive_agent import VISUAL_ANALYSIS_VERSION
         if summary.get("analysis_version") != VISUAL_ANALYSIS_VERSION:
             return False
@@ -388,10 +446,13 @@ def analyze_with_parent(ap, task, parent, files, config, org_id, log):
     from .recognition_checkpoint import analysis_config, RecognitionCheckpointError
     if "_recognition_checkpoint" in config:
         raise RecognitionCheckpointError()
+    from .experience_binding import bind_config
+    config = bind_config(task, org_id, config)
     sources = [ds.DocumentSource(path=f.abs_path, doc_type=f.doc_type) for f in files]
     manual = dict((parent.manual_fields if parent else task.manual_fields) or {})
     previous = None
     parent_snapshot = None
+    synthesis_context = None
     if parent and snapshot_exists(parent, org_id):
         previous, parent_snapshot = load_analysis(task_work_dir(org_id, parent.case_id, parent.id))
         from .document_classification import verify_classification
@@ -404,8 +465,9 @@ def analyze_with_parent(ap, task, parent, files, config, org_id, log):
             manual = dict(previous.fields or {})
     # Old compatibility snapshots can include machine diagnostics among their
     # presumed human edits. They cannot override this invocation's measurements.
+    from agent_trace import RESERVED_KEYS
     manual = {key: value for key, value in manual.items()
-              if key not in ("_analysis_metrics", "_agent_summary", "_field_normalization_version", "_source_fact_recall", "_field_decision_receipt")}
+              if key not in RESERVED_KEYS and key not in ("_analysis_metrics", "_agent_summary", "_field_normalization_version", "_source_fact_recall", "_field_decision_receipt")}
     previous_recall = copy.deepcopy(previous.fields.get("_source_fact_recall")) if previous else None
     current = task.source_manifest or []
     old = parent.source_manifest if parent else []
@@ -468,11 +530,32 @@ def analyze_with_parent(ap, task, parent, files, config, org_id, log):
         run_config = analysis_config(task, parent, org_id, config, case_type=case_type, stage=stage,
             sources=delta_sources, manual_fields=manual, parent_snapshot=parent_snapshot,
             local_recall_context=local_context, analysis_kind="delta")
+        if (config.get('extraction', {}).get('mode') == 'visual_agent'
+                and config.get('vision', {}).get('workflow') == 'document_two_stage'):
+            from supplement_synthesis import SupplementSynthesisContext
+            prior_readings = None
+            if run_config.get('_recognition_checkpoint') is not None:
+                from .recognition_checkpoint import parent_readings
+                from page_reading_store import reader_identity
+                prior_readings = parent_readings(task, parent, org_id, old, reader=reader_identity())
+                # Keep earlier eligible readings in each successor's own task
+                # directory; a second supplement must not lose its grandparent.
+                run_config['_recognition_checkpoint'].page_readings().inherit(prior_readings, previous.doc_spans)
+            synthesis_context = SupplementSynthesisContext(case_type=case_type,
+                fields=previous.fields, units=previous.doc_spans, previous_manifest=old,
+                current_manifest=current, manual=manual, prior_readings=prior_readings,
+                pending_conflicts=[{**entry['detail'], 'resolved': False}
+                    for entry in unresolved_issues(conflicts, previous.fields, task=parent)
+                    if entry.get('kind') == 'field_conflict' and isinstance(entry.get('detail'), dict)])
+            run_config['_supplement_synthesis_context'] = synthesis_context
         delta = ap.analyze_archive(case_type, sources=delta_sources, config=run_config, log=log, **context_args)
         date_previous = copy.deepcopy(previous.fields)
         analysis = previous
         previous_summary = dict(analysis.fields.get("_agent_summary") or {})
+        from form_synthesis import retain_policy_attempt_history
+        retain_policy_attempt_history(analysis.fields)
         analysis.fields.pop("_analysis_metrics", None)
+        analysis.fields.pop('_form_policy_repair', None)
         analysis.fields.pop("_source_fact_recall", None)
         if isinstance(analysis.fields.get("_agent_summary"), dict):
             analysis.fields["_agent_summary"] = dict(analysis.fields["_agent_summary"])
@@ -488,9 +571,24 @@ def analyze_with_parent(ap, task, parent, files, config, org_id, log):
         for item in delta.low_confidence_items or []:
             if isinstance(item, dict) and item.get("doc_id") in unit_ids:
                 item["doc_id"] = unit_ids[item["doc_id"]]
+        from agent_trace import merge_diagnostics, TRACE_KEYS, TRACE_RUNS, TRACE_CURRENT
+        merge_diagnostics(analysis.fields, delta.fields, unit_ids)
+        from evidence_group_state import merge_groups
+        if '_evidence_bundles' in analysis.fields or '_evidence_bundles' in delta.fields:
+            analysis.fields['_evidence_bundles'] = merge_groups(analysis.fields.get('_evidence_bundles'),
+                delta.fields.get('_evidence_bundles'),unit_ids,analysis.doc_spans)
         for key, value in delta.fields.items():
+            if synthesis_context is not None:
+                from form_synthesis import NARRATIVES, KEY as SYNTHESIS_KEY
+                if key in (*NARRATIVES, SYNTHESIS_KEY, '_form_synthesis_status'):
+                    # A supplement's partial description is not a conflicting
+                    # whole-case summary. The scoped writer result is applied
+                    # after factual and manual decisions have been merged.
+                    continue
+            if key in (*TRACE_KEYS, TRACE_RUNS, TRACE_CURRENT, '_evidence_bundles'):
+                continue  # Source-scoped history and current view were merged together.
             previous_value = analysis.fields.get(key)
-            if key in ("_analysis_metrics", "_source_fact_recall"):
+            if key in ("_analysis_metrics", "_source_fact_recall", "_page_reading_cache"):
                 # Timings describe this invocation only, never the reused input.
                 analysis.fields[key] = value
                 continue
@@ -561,10 +659,19 @@ def analyze_with_parent(ap, task, parent, files, config, org_id, log):
                                               previous=previous_recall)
         if recall is not None:
             analysis.fields["_source_fact_recall"] = recall
+    if synthesis_context is not None:
+        from form_synthesis import NARRATIVES
+        for key in NARRATIVES:
+            if key in manual:
+                # This writer deliberately did not regenerate protected text.
+                # A stale parent's auto value is not a new supplement conflict.
+                analysis.fields[key] = copy.deepcopy(manual[key])
     conflicts += merge_manual_fields(analysis, manual, evidence_version=evidence_version)
     from .outcome_state import refresh_missing_outcome
     refresh_missing_outcome(analysis, manual, current, conflicts)
     from .document_classification import DECISIONS, apply_decisions
     if manual.get(DECISIONS):
         apply_decisions(analysis, current, manual[DECISIONS], stage)
+    if synthesis_context is not None:
+        synthesis_context.apply(analysis.fields, analysis.doc_spans, current)
     return analysis, manual, conflicts

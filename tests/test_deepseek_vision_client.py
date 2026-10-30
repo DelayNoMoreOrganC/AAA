@@ -67,6 +67,15 @@ def test_fixed_endpoint_native_images_json_disabled_thinking_and_no_retry(monkey
     assert client.metrics["returned_model"] == "deepseek-v4-flash" and response.closed
 
 
+def test_oversize_request_is_not_sent_or_retried(monkeypatch):
+    seen,_=wire(monkeypatch,Response())
+    monkeypatch.setattr(ds,'MAX_REQUEST_BYTES',100)
+    client=ds.DeepSeekVisionClient('synthetic-key')
+    with pytest.raises(ds.DeepSeekVisionError) as error:
+        client.complete([{'role':'user','content':'原件'*100}])
+    assert error.value.code=='REQUEST_TOO_LARGE' and seen==[]
+
+
 @pytest.mark.parametrize("status", [301, 302, 307, 400, 401, 402, 403, 404, 422, 429, 500, 503])
 def test_provider_http_error_is_safe_and_never_retried(monkeypatch, status):
     seen, _ = wire(monkeypatch, Response(status, {"error":{"code":"invalid_api_key", "message": PRIVATE}, "data":PRIVATE}))

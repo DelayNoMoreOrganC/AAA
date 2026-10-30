@@ -9,8 +9,10 @@ from pleading_parties import recall
 from pdf_doc_locator import DocumentUnit
 
 
-def fixture():
+def fixture(text_override=None):
     text = '民事起诉状\n原告：虚构银行，住所地示例市样例路8号。\n被告一：虚构甲。被告二：虚构乙。\n案由：借款合同纠纷。\n诉讼请求：偿还借款。'
+    if text_override is not None:
+        text = text_override
     contract = '委托人（甲方）：虚构银行。'
     fields = {'委托人': '虚构银行'}
     refs = {'委托人': [{'method': 'local_agent', 'value': '虚构银行', 'quote': contract, 'source_path': 'contract.pdf', 'page': 1}]}
@@ -22,6 +24,20 @@ def fixture():
     fields.update(_provenance=refs, _field_conflicts=conflicts)
     manifest = [{'path': name, 'pages': 1, 'file_id': name} for name in ('pleading.pdf', 'contract.pdf')]
     return fields, manifest
+
+
+def test_short_credit_code_label_address_reaches_original_form_and_linked_sources():
+    from app.services.original_template_service import _values
+    text = ('民事起诉状\n原告：虚构银行，住所：示例路8号901-910室、6号首层9-12号，'
+        '统一信用代码：DEMO000001，负责人：虚构丁。\n被告：虚构乙。\n诉讼请求：偿还借款。')
+    fields, manifest = fixture(text)
+    address = '示例路8号901-910室、6号首层9-12号'
+    assert _values('立案审批表', fields, '', {})['地址'] == address
+    badge = field_assurance('地址', address, fields, source_manifest=manifest)
+    assert badge['status'] == 'source_supported' and badge['source_count'] == 2
+    assert reconcile_party_bindings(fields, {}, manifest[:1])['地址'] == ''
+    fields['委托人'] = '虚构乙'
+    assert reconcile_party_bindings(fields, {}, manifest)['地址'] == ''
 
 
 def test_source_badges_require_both_pleading_and_client_foundation_in_case_scope():

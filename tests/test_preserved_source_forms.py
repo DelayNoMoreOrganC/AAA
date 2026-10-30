@@ -51,6 +51,9 @@ def test_original_forms_preserved_once_with_catalog_links_and_source_pixels(tmp_
             assert len(pages)==1
             assert pages[0].get_pixmap(clip=original[i].rect).samples==original[i].get_pixmap().samples
             assert pages[0].get_label()==(str(i+1) if mode=='body' else '')
+            location=next(row for row in result.source_page_locations if row['source_page']==i+1)
+            assert location['archive_page']==pages[0].number+1
+            assert location['body_page']==(i+1 if mode=='body' else None)
             assert any(link['page']==pages[0].number for p in archive for link in p.get_links())
 
 
@@ -81,6 +84,9 @@ def test_quality_components_preserve_original_pages_and_only_add_missing(tmp_pat
         for i,kind in enumerate(kinds):
             pages=[p for p in document if 'ORIGINAL_'+kind in p.get_text()]
             assert len(pages)==1
+            location=next(row for row in result.source_page_locations if row['source_page']==i+1)
+            assert location['archive_page']==pages[0].number+1
+            assert location['body_page']==(int(pages[0].get_label()) if mode=='body' else None)
             assert pages[0].get_pixmap(clip=original[i].rect).samples==original[i].get_pixmap().samples
         for kind in ('quality_card','client_notice'):
             assert text.count('GENERATED_'+kind)==(kind not in present)

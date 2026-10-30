@@ -16,10 +16,18 @@ export function taskProcessingLabel(task) {
 }
 
 export function resumeProcessingMode(task) { return task?.execution_profile?.processing_mode || 'local' }
+export function capturedFormPolicyToken(task) { return task?.form_policy_update?.token || undefined }
+export function validateFormPolicyRefresh(selected,task) {
+  const current=capturedFormPolicyToken(task)
+  // An absent current plan may mean the first request already created a child.
+  // Send the captured token so the server can recover only that exact child.
+  if(current && current!==selected)throw new Error('可更新的栏目或填写规则已变化，请核对最新状态后重新确认。')
+  return selected
+}
 export function taskNeedsCloudConsent(task) {
   if (!isCloudProcessing(resumeProcessingMode(task))) return false
   const profile=task.execution_profile
-  return task.source_changed === true || profile.cloud_consent !== true || !task.source_version || profile.authorized_source_version !== task.source_version
+  return task.form_policy_update?.available === true || task.source_changed === true || profile.cloud_consent !== true || !task.source_version || profile.authorized_source_version !== task.source_version
 }
 
 // The API key is write-only: an untouched input omits the field, explicit removal sends ''.

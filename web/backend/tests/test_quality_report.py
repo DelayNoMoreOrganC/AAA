@@ -23,6 +23,19 @@ def test_quality_report_does_not_invent_pass_without_merger_result(tmp_path):
     assert "未核验" in (tmp_path / "归档质检清单.html").read_text(encoding="utf-8")
 
 
+def test_quality_report_exports_source_to_output_locations_and_local_links(tmp_path):
+    analysis,files,source=_fixture(tmp_path)
+    result={'success':True,'original_pages_included':1,'pagination':{'mode':'draft','body_start':0},
+        'source_page_locations':[{'source_path':str(source),'source_page':1,'archive_page':1,'body_page':None,'doc_id':1,'catalog_seq':7}]}
+    report=write_quality_report(tmp_path,analysis,files,source,'local',[],verification=result,draft=True)
+    assert report['source_page_locations_version']=='source-pages-v1'
+    row=report['source_page_locations'][0]
+    assert row['source_index']==1 and row['source_page']==row['archive_page']==1
+    assert 'source_path' not in row and row['body_page'] is None
+    html=(tmp_path/'归档质检清单.html').read_text(encoding='utf-8')
+    assert '#page=1' in html and '源页去向' in html
+
+
 def test_verified_merge_records_provenance_and_unverified_rules(tmp_path):
     analysis, files, source = _fixture(tmp_path)
     result = SimpleNamespace(success=True, original_pages_included=1)

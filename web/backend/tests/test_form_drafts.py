@@ -51,7 +51,7 @@ async def test_web_field_save_recomputes_drafts_and_preserves_explicit_blank(tmp
     archive_service.refresh_form_drafts(analysis, {}, manifest)
     work = tmp_path / "work"
     save_snapshot(str(work), analysis, base_name="synthetic")
-    task = SimpleNamespace(id=101, fields=analysis.fields, manual_fields={}, source_manifest=manifest,
+    task = SimpleNamespace(id=101, case_id='protocol-case', source_version=1, fields=analysis.fields, manual_fields={}, source_manifest=manifest,
         issues=analysis_issues(analysis, manifest), revision=1, output_pdf="old.pdf",
         artifacts={"valid": True}, confirmation={"confirmed": True})
     monkeypatch.setattr(archive_service, "_work_dir_for", lambda *args: str(work))

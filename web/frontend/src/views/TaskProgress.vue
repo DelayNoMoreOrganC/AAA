@@ -45,7 +45,7 @@
           <p v-else class="muted">已核验的必要材料需补齐后才可正式归档。草稿可先下载。</p></div>
         </template>
         <template v-else>
-          <div class="button-row"><el-button v-if="activeDecision.source.detail?.field" text @click="showEvidence(activeDecision.source.detail.field)">查看字段依据</el-button><el-button v-if="activeDecision.members.some(item=>item.kind==='classification')" text data-testid="decision-classification" @click="showDocumentClassification(activeDecision.members.find(item=>item.kind==='classification'))">核对这段文书</el-button><el-button v-if="activeDecision.field||activeDecision.source.detail?.field||activeDecision.source.kind==='empty_fields'" data-testid="decision-edit-field" text @click="openDecisionField">打开对应字段</el-button></div><p v-if="fieldTargetError" class="error-message" role="alert">{{ fieldTargetError }}</p>
+          <div class="button-row"><el-button v-if="activeDecision.source.detail?.field" text @click="showEvidence(activeDecision.source.detail.field)">查看字段依据</el-button><el-button v-for="item in activeClassificationIssues" :key="item.id" text data-testid="decision-classification" @click="showDocumentClassification(item)">核对文书 · 第 {{ item.detail?.page_start || item.detail?.page }}<template v-if="item.detail?.page_end > (item.detail?.page_start || item.detail?.page)">—{{ item.detail.page_end }}</template> 页</el-button><el-button v-if="activeDecision.field||activeDecision.source.detail?.field||activeDecision.source.kind==='empty_fields'" data-testid="decision-edit-field" text @click="openDecisionField">打开对应字段</el-button></div><p v-if="fieldTargetError" class="error-message" role="alert">{{ fieldTargetError }}</p>
           <div v-if="activeDecision.source.detail && 'saved' in activeDecision.source.detail" class="conflict-evidence"><p>当前保留：{{ activeDecision.source.detail.saved || '空白' }}</p><p>补件识别：{{ activeDecision.source.detail.new || '空白' }}</p></div>
           <section v-if="activeCandidateChoices.length && !historical" class="field-candidates" data-testid="field-candidates" aria-label="选择字段内容"><p>材料记载不同，请选择本案适用的内容。</p><div v-for="choice in activeCandidateChoices" :key="choice.selected_value" class="conflict-evidence"><strong>{{ choice.selected_value }}</strong><div class="button-row"><el-button v-for="source in choice.sources" :key="source.file_id+':'+source.page" text @click="showDecisionSource(source)">{{ source.filename }} · 第 {{ source.page }} 页</el-button><el-button :disabled="locked||processing||fieldChoiceState.needsRefresh||fieldChoiceAccountChanged" :loading="fieldChoiceBusy" :data-testid="'choose-field-'+choice.selected_value" @click="acceptCurrentField(choice.selected_value)">采用 {{ choice.selected_value }}</el-button></div></div><p class="muted">选择后保留其他依据；更新草稿后下载。</p></section>
           <section v-if="activeFieldChoice && !historical" class="field-choice" data-testid="field-choice"><p>{{ activeFieldChoice.field }} · 当前内容</p><p class="field-current-value" data-testid="field-current-value">{{ activeFieldChoice.current_value }}</p><el-button data-testid="accept-current-field" :loading="fieldChoiceBusy" :disabled="locked||processing||fieldChoiceState.needsRefresh||fieldChoiceAccountChanged" @click="acceptCurrentField">{{ fieldChoiceState.retryable?'重试确认（原请求）':'确认使用此内容' }}</el-button><p class="muted">仅确认此字段；原有不同依据继续留存。成果需更新草稿后下载。</p></section>
@@ -113,7 +113,7 @@ import { buildDecisionQueue,selectDecision,stepDecision,decisionAfterSave,formDr
 import { currentFieldDecision,candidateFieldDecisions,hasFieldConflict,createFieldDecision } from '../domain/fieldDecision.js'
 
 import { companionPresentation,archiveSummary,nextArchiveAction,archiveConfirmationAction,materialRequirementLabel,canUseTaskAssistant,parseVisualStageProgress } from '../domain/taskExperience.js'
-import { taskProcessingLabel,materialConsentKey,resumeProcessingMode,taskNeedsCloudConsent } from '../domain/processingPrivacy.js'
+import { taskProcessingLabel,materialConsentKey,resumeProcessingMode,taskNeedsCloudConsent,capturedFormPolicyToken,validateFormPolicyRefresh } from '../domain/processingPrivacy.js'
 import { useCloudConsent } from '../domain/useCloudConsent'
 import { saveReviewEditors, unresolvedMissing, isRequiredMissing } from '../domain/review.js'
 import { unresolvedIssues, isHistoricalTask, phaseDescription, reconcileDecisions, formatShanghaiTime, canLocateEvidence, parseAgentFragmentProgress, evidencePageCards } from '../domain/workflow.js'
@@ -153,7 +153,7 @@ const agentFragments=ref<{done:number,total:number}|null>(null),progressConnecte
 const visualProgress=ref<any>(null)
 const resumeMode=computed(()=>resumeProcessingMode(task.value))
 const cloudConsentRequired=computed(()=>taskNeedsCloudConsent(task.value))
-const {approved:cloudApproved,reset:resetCloudConsent,payload:cloudConsentPayload}=useCloudConsent(()=>resumeMode.value,()=>taskId+':'+(task.value?.source_version||'')+materialConsentKey(caseInfo.value?.files))
+const {approved:cloudApproved,reset:resetCloudConsent,payload:cloudConsentPayload}=useCloudConsent(()=>resumeMode.value,()=>taskId+':'+(task.value?.source_version||'')+materialConsentKey(caseInfo.value?.files)+':'+(task.value?.form_policy_update?.token||''))
 let progressSocket:WebSocket|null=null,logsReceived=false,nextSocketAttempt=0,socketDelay=5000
 let sourceRequest=0
 let poll:ReturnType<typeof setInterval>|null=null,disposed=false,taskRequest:Promise<boolean>|null=null
@@ -177,6 +177,7 @@ const activeDecision=computed(()=>decisionQueue.value.find((item:any)=>item.key=
 const activeCandidateChoices=computed(()=>candidateFieldDecisions(task.value,activeDecision.value))
 const activeOtherSources=computed(()=>{const covered=new Set(activeCandidateChoices.value.flatMap((choice:any)=>choice.sources.map((s:any)=>s.file_id+':'+s.page)));return (activeDecision.value?.sources||[]).filter((s:any)=>!covered.has(s.file_id+':'+s.page))})
 const activeHasFieldConflict=computed(()=>hasFieldConflict(activeDecision.value))
+const activeClassificationIssues=computed(()=>(activeDecision.value?.members||[]).filter((item:any)=>item.kind==='classification'))
 const activePendingFieldConflict=computed(()=>hasFieldConflict(activeDecision.value,true))
 const activeFieldChoice=computed(()=>currentFieldDecision(task.value,activeDecision.value))
 const decisionPosition=computed(()=>decisionQueue.value.findIndex((item:any)=>item.key===activeDecisionKey.value)+1)
@@ -424,7 +425,8 @@ async function resume(){
   if(uploadState.value.blocked){operationError.value='请先完成或移除待导入项，并确认待上传清单已读取。';return}
   if(hasUnsaved()&&!(await saveDraft(true)))return
   resuming.value=true;operationError.value=''
-  try{if(!(await refresh()))throw new Error('未能核对最新材料和处理方式，请恢复连接后重试。');const consent=taskNeedsCloudConsent(task.value)?cloudConsentPayload():{cloud_consent:false,expected_processing_mode:resumeMode.value};const {data}=await client.post('/tasks/'+taskId+'/resume',consent);resetCloudConsent();if(String(data.id)!==taskId)goTask(data.id);else await refresh()}catch(e:any){operationError.value=e.response?.data?.detail||e.message||'暂时无法继续，已保存的进度仍保留。'}finally{resuming.value=false}
+  const selectedPolicy=capturedFormPolicyToken(task.value)
+  try{if(!(await refresh()))throw new Error('未能核对最新材料和处理方式，请恢复连接后重试。');validateFormPolicyRefresh(selectedPolicy,task.value);const consent=taskNeedsCloudConsent(task.value)?cloudConsentPayload():{cloud_consent:false,expected_processing_mode:resumeMode.value};const {data}=await client.post('/tasks/'+taskId+'/resume',{...consent,form_policy_token:selectedPolicy});resetCloudConsent();if(String(data.id)!==taskId)goTask(data.id);else await refresh()}catch(e:any){operationError.value=e.response?.data?.detail||e.message||'暂时无法继续，已保存的进度仍保留。'}finally{resuming.value=false}
 }
 function onFilesSelected(event:Event){const input=event.target as HTMLInputElement;const files=Array.from(input.files||[]);input.value='';uploadAndContinue(files)}
 async function dismissUpload(id:string){if(locked.value||processing.value)return;await uploadQueue.remove(id)}

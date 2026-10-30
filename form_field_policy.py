@@ -1,5 +1,5 @@
 """Versioned, per-cell writing instructions. No client examples or model calls."""
-VERSION = 3
+VERSION = 4
 
 # The output mode is intentional: a model must not invent administrative facts
 # or signatures just because the original form contains an empty cell.
@@ -12,7 +12,7 @@ RULES = {
     '委托人电话': ('literal', '只取明确属于委托人的联系电话，保留多个委托人的归属；不取律师、法院或对方电话。'),
     '委托人传真': ('literal', '只取明确委托方传真；空白不填无，不用电话替代。'),
     '地址': ('literal', '取明确属于委托方的联系地址；不将送达代理人的地址自动当住所。'),
-    '收费标准': ('literal', '以本案委托合同及补充条款为依据，保留固定额/费率、基数、阶段、周期、条件和另行收费范围；不等于已收或结算。'),
+    '收费标准': ('literal', '以本案委托合同、补充条款或明确对应本案的委托代理通知书为依据。保留固定额/费率、基数、阶段、周期、扣减、回款及转让等适用条件；不得只摘金额。通知书有多个计费选项时，须核实实际选中项，保留勾选/实心标记与未选项，不能因一项填了金额就推定已选；OCR丢失选择标记时查看原图，仍不清楚则留空。不同来源冲突不自动覆盖。通知书可证明其载明的收费标准，不证明委托合同齐备、已签署、已收款或已结算。'),
     '承办律师': ('literal', '须有本所指派或委托关系，列实际承办人；不采对方律师或仅出现的署名。'),
     '律师事务所': ('literal', '取本案受托律所全称，不取合同示例、对方律所或仅引用单位。'),
     '案由': ('literal', '民事按诉状/裁判的争议性质，刑事区分指控罪名与裁判认定，非诉顾问用实际事项名称。'),

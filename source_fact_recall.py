@@ -37,7 +37,7 @@ def cached_visual_sources(pages, evidence_seen, units):
 def recall_cached_source_facts(fields, provenance, conflicts, *, page_cache,
                               allowed_sources, fact_review,
                               method="visual_agent_local_evidence", manual_fields=(),
-                              local_recall_context=None, document_units=()):
+                              local_recall_context=None, document_units=(), visual_fee_candidates=()):
     """Fill absent automatic fields; preserve humans, conflicts and audit rows.
 
     All eligible candidates are gathered before commit. Multiple supported
@@ -121,7 +121,7 @@ def recall_cached_source_facts(fields, provenance, conflicts, *, page_cache,
             from source_fee_notice import recall_fee
             metrics['accepted_count'] += recall_fee(fields,provenance,conflicts,
                 page_cache=page_cache,allowed_sources=allowed_sources,manual_fields=manual_fields,
-                fact_review=fact_review,method=method)
+                fact_review=fact_review,method=method,visual_candidates=visual_fee_candidates)
             from court_report_summary import recall_report
             metrics['accepted_count'] += recall_report(fields,provenance,conflicts,
                 page_cache=page_cache,allowed_sources=allowed_sources,document_units=document_units,

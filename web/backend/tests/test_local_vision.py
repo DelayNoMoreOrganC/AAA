@@ -42,7 +42,7 @@ async def test_local_profile_config_no_cloud_keys_and_immutable_across_settings(
     assert response.status_code==200 and "SYNTHETIC" not in response.text
     async with ctx.sessions() as db:
         profile=await profiles.make_profile(db,"test-user","version1",expected_mode="ollama_local")
-        task=SimpleNamespace(execution_profile=profile,created_by="test-user",source_version="version1")
+        task=SimpleNamespace(case_id='case-a',execution_profile=profile,created_by="test-user",source_version="version1")
         assert profiles.validate_task_authorization(task,"version1")=="ollama_local"
         config=await profiles.task_config(db,task,actual_source_version="version1")
         assert config["privacy"]["mode"]=="local" and not config["privacy"]["cloud_authorized"]
@@ -90,7 +90,7 @@ async def test_each_preset_is_frozen_and_cannot_follow_later_account_choice(uplo
     async with ctx.sessions() as db:
         profile=await profiles.make_profile(db,"test-user","v1",expected_mode="ollama_local")
     assert profile["model"]==engine.PRESETS[tier]["model"]
-    task=SimpleNamespace(execution_profile=profile,created_by="test-user",source_version="v1")
+    task=SimpleNamespace(case_id='case-a',execution_profile=profile,created_by="test-user",source_version="v1")
     await ctx.client.put('/api/settings',json={"local_vision_tier":"minimum","processing_mode":"deepseek_cloud"})
     async with ctx.sessions() as db:
         config=await profiles.task_config(db,task,actual_source_version="v1")

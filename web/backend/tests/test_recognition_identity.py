@@ -8,6 +8,17 @@ init_v4_path()
 import recognition_identity as identity
 
 
+@pytest.mark.parametrize('module', ['visual_fact_readback.py', 'visual_synthesis_sources.py', 'supplement_synthesis.py'])
+def test_visual_proof_policy_changes_are_part_of_production_fingerprint(tmp_path, monkeypatch, module):
+    assert module in identity.RECOGNITION_FILES
+    monkeypatch.setattr(identity, 'RECOGNITION_FILES', ('case_outcome.py', module))
+    (tmp_path / 'case_outcome.py').write_text('STRICT_EVIDENCE_VERSION = "strict-fields-v4"', encoding='utf-8')
+    (tmp_path / module).write_text('POLICY = 1', encoding='utf-8')
+    before = identity.recognition_identity(tmp_path)
+    (tmp_path / module).write_text('POLICY = 2', encoding='utf-8')
+    assert identity.recognition_identity(tmp_path)['recognition_signature'] != before['recognition_signature']
+
+
 def test_fingerprint_ignores_runtime_and_ui_but_changes_for_recognition(tmp_path, monkeypatch):
     monkeypatch.setattr(identity, "RECOGNITION_FILES", ("case_outcome.py", "reader.py"))
     (tmp_path / "case_outcome.py").write_text('STRICT_EVIDENCE_VERSION = "strict-fields-v4"', encoding="utf-8")

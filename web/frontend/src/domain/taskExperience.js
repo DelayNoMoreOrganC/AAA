@@ -42,6 +42,7 @@ export function caseTaskPresentation(task){
   if(task.source_changed)return {label:'补件待整理',title:task.has_archive?'此前草稿已保存，补件待整理':'补件已收到',action:'根据当前材料继续归档',description:'已有成果不包含新增材料。继续整理会保留已保存的人工修改。'}
   if(['pending','running'].includes(task.status))return {label:'正在整理',title:'助理正在整理材料',action:'查看整理进度',description:'处理会继续保存在工作站，无需重复启动。'}
   if(task.status==='failed')return {label:'需要处理',title:'整理暂时停在这里',action:'查看并继续处理',description:'已保存材料仍保留，任务页提供具体原因和下一步。'}
+  if(task.form_policy_update?.available===true)return {label:'表单可更新',title:'填写规则有更新',action:'更新表单草稿',description:'仅复核受影响的自动填写栏目，保留人工修改和此前成果。'}
   if(task.has_archive){const draft=task.delivery_kind==='draft'||task.status!=='done';return {label:draft?'草稿可下载':'成果可下载',title:draft?'档案草稿已生成':'归档成果已保存',action:draft?'查看与下载草稿':'查看与下载成果',description:'整卷 PDF、可编辑表格和核对记录已生成，补充材料可随后完善。'}}
   if(needsOriginalFormCorrection(task))return {label:'原表待调整',title:'原表内容需要简要填写',action:'打开并修改原表',description:'本次草稿尚未生成。任务页会显示具体原因；修改保存后可以重新生成。'}
   return {label:'已整理，可查看',title:'材料已整理',action:'打开归档草稿',description:'可在任务页生成完整草稿，缺项和识别疑问不要求逐项确认后才出卷。'}
@@ -85,6 +86,10 @@ export function nextArchiveAction(task,context={}){
     return task.can_resume?action('resume','继续处理','从已保存的进度继续'):action('issues','查看需要处理的问题','修复问题后继续整理')
   }
   if(documentDraft)return action('catalog','保存文书分类调整','有一项分类调整尚未保存，请保存或取消')
+  if(task.form_policy_update?.available===true&&!hasUnsaved){
+    if(cloudConsentRequired&&!cloudApproved)return action('consent','确认本次栏目更新','仅处理受影响栏目，旧草稿仍可下载')
+    return action('resume','更新表单草稿','保留人工修改及历史成果，不重新识别整卷')
+  }
   if(task.has_archive&&!hasUnsaved)return action('download',task.delivery_kind==='draft'||task.status!=='done'?'下载档案草稿':'下载全部成果','整卷 PDF、可编辑表格和核对记录一并下载')
   if(needsOriginalFormCorrection(task))return action('repair_form','修改原表内容','保存修改后可重新生成，无需逐项处理其他核对事项')
   if(['awaiting_review','done'].includes(task.status))return action('draft',hasUnsaved?'保存修改并更新草稿':'生成档案草稿',task.can_assemble?'缺失材料保留在补充清单中，生成草稿无需逐项确认':'文书生成组件尚未就绪，已整理信息会保留',!task.can_assemble)

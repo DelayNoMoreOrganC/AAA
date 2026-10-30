@@ -9,6 +9,13 @@ const contract={id:'material:contract',seq:3,name:'委托合同',check_kind:'sou
 const row={seq:3,name:'委托合同',found:true,material_status_version:'v1',material_checks:[contract],unclassified_sources:[]}
 const Component=await loadSfc('../src/components/SupplementSummary.vue',{'../domain/materialCompleteness.js':domain})
 
+test('unprocessed pages do not become a repetitive material supplement list',()=>{
+  const stopped={...row,material_checks:[{...contract,status:'processing_incomplete',message:'识别未完成，不表示材料缺失'}]}
+  const result=domain.materialSupplementState([stopped])
+  assert.equal(result.required.length+result.applicability.length+result.optional.length,0)
+  assert.equal(result.pendingProcessing.length,1)
+})
+
 test('occupied contract row still appears once in consolidated list with real source navigation and no automatic decision',async()=>{
   const sources=[],uploads=[],h=mount(Component,{items:[row],issueCount:0,onSource:item=>sources.push(item),onUpload:()=>uploads.push(true)})
   try{await settle();assert.equal(find(h.root,'material-supplement-list'),undefined);assert.match(content(find(h.root,'applicability-materials')),/1 项适用性待核验/);assert.match(content(h.root),/通知书不能证明/);assert.match(content(h.root),/不表示可省略/);assert.equal(find(h.root,'applicability-materials').props.open,undefined);assert.equal(findType(h.root,'input'),undefined);click(find(h.root,'material-source'));assert.deepEqual(sources,[notice]);assert.deepEqual(uploads,[])}finally{h.app.unmount()}

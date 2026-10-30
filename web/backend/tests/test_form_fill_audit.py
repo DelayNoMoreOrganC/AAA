@@ -14,6 +14,14 @@ def test_blank_diagnosis_separates_system_failure_human_and_configuration():
     assert row(rows,'档案卷宗','卷内页数')['gap']['code']=='output_pending'
 
 
+def test_changed_policy_blank_is_system_review_not_missing_material():
+    fields = {'案件类别': '民事', '_form_synthesis_status': {'fields': {'案情简介': 'policy_review_required'}}}
+    item = row(build_form_fill_audit(fields, []), '立案审批表', '案情简介')
+    assert item['gap']['code'] == 'policy_review_needed'
+    assert item['gap']['action'] == 'system_review_first'
+    assert '重复上传' in item['reason']
+
+
 def test_verified_candidate_blank_is_system_repair_not_missing_client_material(tmp_path):
     path=str(tmp_path/'source.pdf')
     fields={'案件类别':'民事','委托人电话':'','_provenance':{'委托人电话':[

@@ -118,6 +118,25 @@ def test_pleading_residence_reaches_forms_with_two_source_identity_link():
     assert draft['地址'] == '演示路'
 
 
+@pytest.mark.parametrize('label', ['统一社会信用代码', '统一信用代码'])
+@pytest.mark.parametrize('separator', ['，', ''])
+def test_credit_code_label_ends_the_address_without_becoming_address_text(label, separator):
+    address = '示例市演示路8号一座901-910室、6号首层9-12号'
+    text = TEXT.replace('住所地演示路。', f'住所：{address}{separator}{label}：\nDEMO000001，负责人：虚构丁。')
+    fields, units, metrics = run(text)
+    assert fields['地址'] == address
+    assert metrics['additional_model_requests'] == metrics['additional_page_reads'] == 0
+    ref = fields['_provenance']['地址'][0]
+    assert {r['source_path'] for r in current_support(ref, fields)} == {'complaint.pdf', 'contract.pdf'}
+    draft = derive_form_drafts(fields, units, source_manifest=[{'path':'complaint.pdf','pages':1}, {'path':'contract.pdf','pages':1}])
+    assert draft['地址'] == address
+
+
+def test_unrecognized_text_after_address_comma_is_not_silently_truncated():
+    fields, _, _ = run(TEXT.replace('住所地演示路。','住所地演示路，统一代码：DEMO000001。'))
+    assert not fields.get('地址')
+
+
 def test_represented_defendant_gets_own_address_and_not_plaintiff_address():
     text = TEXT.replace('被告二：虚构甲。', '被告二：虚构甲，住址：示例市测试路9号。')
     fields, _, _ = run(text, client='虚构甲')

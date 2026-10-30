@@ -59,6 +59,57 @@ test('production task SFC lands on draft download with consolidated unknown-rule
   const h=await taskHarness()
   try{assert.match(content(find(h.root,'archive-primary-action')),/下载档案草稿/);assert.ok(find(h.root,'archive-result'));assert.match(content(find(h.root,'supplement-summary')),/适用性待核验/);assert.equal(find(h.root,'decision-focus'),undefined);assert.equal(find(h.root,'issue-review-reason'),undefined);assert.ok(!h.calls.some(([method])=>method==='post'||method==='patch'))}finally{h.dispose()}
 })
+
+test('policy repair task action posts the exact plan and keeps existing result access',async()=>{
+  const token='a'.repeat(64)
+  const h=await taskHarness({...baseline,can_resume:true,issues:[],execution_profile:{processing_mode:'ollama_local'},
+    form_policy_update:{available:true,token,fields:['结案小结']}})
+  try{
+    assert.match(content(find(h.root,'archive-primary-action')),/更新表单草稿/)
+    assert.ok(find(h.root,'archive-result'))
+    click(find(h.root,'archive-primary-action'));await settle()
+    const calls=h.calls.filter(([method])=>method==='post')
+    assert.deepEqual(calls,[['post','/tasks/3/resume',{cloud_consent:false,expected_processing_mode:'ollama_local',form_policy_token:token}]])
+  }finally{h.dispose()}
+})
+
+test('policy repair refresh keeps the captured token when the old task no longer offers a plan',async()=>{
+  const token='a'.repeat(64)
+  const value={...baseline,can_resume:true,issues:[],execution_profile:{processing_mode:'ollama_local'},
+    form_policy_update:{available:true,token,fields:['结案小结']}}
+  const h=await taskHarness(value)
+  try{
+    h.setTask({...value,form_policy_update:null})
+    click(find(h.root,'archive-primary-action'));await settle()
+    const calls=h.calls.filter(([method])=>method==='post')
+    assert.deepEqual(calls,[['post','/tasks/3/resume',{cloud_consent:false,expected_processing_mode:'ollama_local',form_policy_token:token}]])
+  }finally{h.dispose()}
+})
+
+test('policy repair refresh cannot silently adopt a new rule token',async()=>{
+  const value={...baseline,can_resume:true,issues:[],execution_profile:{processing_mode:'ollama_local'},
+    form_policy_update:{available:true,token:'a'.repeat(64),fields:['结案小结']}}
+  const h=await taskHarness(value)
+  try{
+    h.setTask({...value,form_policy_update:{...value.form_policy_update,token:'b'.repeat(64)}})
+    click(find(h.root,'archive-primary-action'));await settle()
+    assert.equal(h.calls.filter(([method])=>method==='post').length,0)
+    assert.match(content(h.root),/填写规则已变化/)
+    assert.ok(find(h.root,'archive-result'))
+  }finally{h.dispose()}
+})
+
+test('policy repair cloud task asks consent despite historical cloud approval',async()=>{
+  const h=await taskHarness({...baseline,can_resume:true,issues:[],
+    execution_profile:{processing_mode:'deepseek_cloud',cloud_consent:true,authorized_source_version:baseline.source_version},
+    form_policy_update:{available:true,token:'a'.repeat(64),fields:['结案小结']}})
+  try{
+    assert.match(content(find(h.root,'archive-primary-action')),/确认本次栏目更新/)
+    assert.ok(find(h.root,'supplement-consent'))
+    assert.ok(find(h.root,'archive-result'))
+    assert.equal(h.calls.filter(([method])=>method==='post').length,0)
+  }finally{h.dispose()}
+})
 test('production task shows original-cell limits as brief-entry work without blocking draft download or inventing missing materials',async()=>{
   const h=await taskHarness({...baseline,fields:{_form_drafts:{fields:{
     '案情简介':{status:'generated',source_count:2},

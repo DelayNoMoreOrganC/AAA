@@ -154,7 +154,7 @@ def represented_address(source, client):
         if len(labels) != 1:
             return None
         tail = own[labels[0].end():]
-        stop = re.search(r'[，,。;；]|(?:联系电话|电话|手机|传真|邮编|身份证|统一社会信用代码)\s*[:：]', tail)
+        stop = re.search(r'[，,。;；]|(?:联系电话|电话|手机|传真|邮编|身份证|统一(?:社会)?信用代码)\s*[:：]', tail)
         if not stop:
             # The next role owns its period/newline. Only allow the completed
             # block boundary, not the final uncapped section before requests.
@@ -164,7 +164,7 @@ def represented_address(source, client):
         else:
             raw = tail[:stop.start()]
             if stop[0] in ('，', ',') and not re.match(
-                    r'\s*(?:联系电话|电话|手机|传真|邮编|身份证|统一社会信用代码|法定代表人|负责人)\s*[:：]', tail[stop.end():]):
+                    r'\s*(?:联系电话|电话|手机|传真|邮编|身份证|统一(?:社会)?信用代码|法定代表人|负责人)\s*[:：]', tail[stop.end():]):
                 return None
         address = compact(raw)
         if (not 3 <= len(address) <= 120 or re.search(r'[:：?？]|未|不详|待|未知|原告|被告|案由|代理|律师', address)):

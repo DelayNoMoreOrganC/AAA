@@ -14,7 +14,7 @@ from sqlalchemy import select, func
 from .config import FRONTEND_DIST, get_settings
 from .bootstrap import ensure_bootstrap_admin
 from .database import init_db
-from .routers import admin, auth, cases, settings as settings_router, tasks, setup, demo, workstation, evidence, assistant, assistant_drafts, upload_intents
+from .routers import admin, auth, cases, settings as settings_router, tasks, setup, demo, workstation, evidence, assistant, assistant_drafts, upload_intents, experiences
 from .services.word_service import shutdown_word
 from .services.recovery import recover_interrupted_tasks
 from .services.http_privacy import ConfidentialityMiddleware
@@ -60,6 +60,7 @@ app.include_router(evidence.router)
 app.include_router(assistant.router)
 app.include_router(assistant_drafts.router)
 app.include_router(upload_intents.router)
+app.include_router(experiences.router)
 
 
 app.add_middleware(ConfidentialityMiddleware)

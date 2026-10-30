@@ -97,6 +97,7 @@ async def make_profile(db, user_id, version, *, cloud_consent=False, expected_mo
         except LocalEngineUnavailable:
             raise SafeTaskError(ErrorCode.LOCAL_MODEL_UNAVAILABLE) from None
         return {"version": 1, "processing_mode": mode, "provider": "ollama", "model": model, "local_vision_tier": tier,
+                '_request_budget':{'version':1,'max_requests':get_settings().model_request_limit},
                 "workflow": "document_two_stage", "model_digest": digest, "cloud_consent": False,
                 "authorized_source_version": None, "authorized_by": None}
     profile = {"version": 1, "processing_mode": mode,
@@ -105,7 +106,15 @@ async def make_profile(db, user_id, version, *, cloud_consent=False, expected_mo
                "cloud_consent": cloud, "authorized_source_version": version if cloud else None,
                "authorized_by": user_id if cloud else None}
     if mode == "deepseek_cloud":
+        from ..core.v4_bridge import load
+        POLICY = load('document_field_batch').POLICY
         profile["workflow"] = "document_two_stage"
+        profile['_visual_batch_policy'] = dict(POLICY)
+        deployment = get_settings()
+        ceiling = deployment.deepseek_request_limit
+        if deployment.model_request_limit is not None:
+            ceiling = min(ceiling, deployment.model_request_limit)
+        profile['_request_budget'] = {'version':1,'max_requests':ceiling}
     if mode not in ("glm_cloud", "deepseek_cloud"):
         profile["base_url"] = inherited.get("base_url", settings.get("deepseek_base_url" if cloud else "local_llm_base_url", ""))
     return profile
@@ -114,8 +123,28 @@ async def make_profile(db, user_id, version, *, cloud_consent=False, expected_mo
 async def task_config(db, task, *, actual_source_version):
     mode = validate_task_authorization(task, actual_source_version)
     config = await build_v4_config(db, task.created_by, overrides=profile_overrides(task), cloud_authorized=mode in CLOUD_MODES)
+    from ..core.v4_bridge import load
+    validated_policy = load('document_field_batch').validated_policy
+    try:
+        batch_policy = validated_policy((task.execution_profile or {}).get('_visual_batch_policy'))
+        if batch_policy is not None and mode != 'deepseek_cloud':
+            raise ValueError('DOCUMENT_BATCH_PROVIDER_INVALID')
+    except ValueError:
+        raise SafeTaskError(ErrorCode.EXECUTION_PROFILE_INVALID) from None
+    if batch_policy is not None:
+        config['vision']['batch_policy'] = batch_policy
     if mode == "glm_cloud" and not config["vision"]["api_key"].strip():
         raise SafeTaskError(ErrorCode.GLM_KEY_UNCONFIGURED)
     if mode == "deepseek_cloud" and not config["vision"]["api_key"].strip():
         raise SafeTaskError(ErrorCode.DEEPSEEK_KEY_UNCONFIGURED)
-    return config
+    from sqlalchemy import select
+    from ..models import Case
+    from .experience_binding import bind_config
+    from .experience_rules import ExperienceError
+    org_id = await db.scalar(select(Case.org_id).where(Case.id == task.case_id))
+    if not org_id:
+        raise SafeTaskError(ErrorCode.EXECUTION_PROFILE_INVALID)
+    try:
+        return bind_config(task, org_id, config)
+    except ExperienceError:
+        raise SafeTaskError(ErrorCode.EXECUTION_PROFILE_INVALID) from None

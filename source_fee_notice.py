@@ -34,6 +34,8 @@ def candidate(text, fields, *, summary_version=2):
     if page.count(binding) != 1:
         return None
     selections = list(re.finditer(r'按照以下第([12])种计费方式计算律师费[:：]', page))
+    if not selections and summary_version == 2:
+        return _checked_fixed_candidate(text, page, identity)
     if len(selections) != 1:
         return None
     selected = selections[0]
@@ -71,10 +73,50 @@ def candidate(text, fields, *, summary_version=2):
     return result
 
 
+def has_explicit_fixed_choice(text):
+    """Detect an option layout only; this never establishes identity or a fact."""
+    return isinstance(text, str) and 0 < len(text) <= 18000 and bool(
+        _checked_fixed_candidate(text, compact(text).replace('_', ''), {'委托人': ''}))
+
+
+def _checked_fixed_candidate(text, page, identity):
+    """Accept an explicit selected mark, never infer it from a filled amount.
+
+    OCR often drops the dot/checkbox. Such text deliberately remains unknown;
+    this parser does not synthesize missing marks or waive case identity.
+    """
+    starts = list(re.finditer(r'一[、.．]按照以下计费方式计算律师费[:：]', page))
+    if len(starts) != 1:
+        return None
+    block = page[starts[0].end():]
+    end = re.search(r'二[、.．]', block)
+    if not end:
+        return None
+    options = block[:end.start()]
+    selected = re.fullmatch(
+        r'(?P<mark>●|☑|■|\[[xX✓√]\])固定收费方式[:：]固定律师费[:：]'
+        r'(?P<amount>\d{1,8}(?:\.\d{1,2})?)元[。;；]?'
+        r'(?:□|☐|○|\[\])浮动费率方式[:：]费率[:：]?%[。;；]?', options)
+    if not selected or float(selected['amount']) <= 0:
+        return None
+    value = f"固定{selected['amount']}元\n条件见通知书"
+    if sum(.5 if ord(c) < 128 else 1 for c in value) > 15:
+        return None
+    return {'field':FIELD, 'value':value, 'quote':text, 'derivation':DERIVATION,
+        'binding':DERIVATION, 'bound_fields':identity, 'subject':identity['委托人'],
+        'selected_option':'fixed', 'selection_layout':'marked_fixed_notice_v1',
+        'selected_mark':selected['mark'], 'fee_options':options, 'fee_terms':block,
+        'summary_version':2}
+
+
 def reference_supported(field, value, ref, fields):
     if (field != FIELD or not isinstance(ref, dict) or ref.get('derivation') != DERIVATION
             or ref.get('value') != value or fields.get(FIELD) != value):
         return False
+    if ('notice_visual_readback' in ref or ref.get('candidate_origin') == 'two_visual_fee_notice_reads'):
+        from visual_fee_readback import current_reference_supported
+        if not current_reference_supported(ref):
+            return False
     if any(isinstance(row, dict) and row.get('field') in (*IDENTITY, FIELD, '委托人名称', '委托方')
            and row.get('resolved') is not True for row in fields.get('_field_conflicts') or []):
         return False
@@ -97,13 +139,16 @@ def reference_note(fields):
                 and ref.get('method') in ('local_agent', 'visual_agent_local_evidence')
                 and reference_supported(FIELD, fields.get(FIELD), ref, fields)):
             terms = ref['fee_terms']
+            if ref.get('selection_layout') == 'marked_fixed_notice_v1':
+                conditions = [word for word in ('扣减','债权转让','上限','付款') if word in terms]
+                return (('、'.join(conditions)+'等计费条件') if conditions else '具体计费条件') + '详卷内委托代理通知书及续页。'
             if all(word in terms for word in ('增加', '扣减', '上限', '债权转让')):
                 return '收费增减、上限及转让计费等，详卷内委托代理通知书。'
             return '其他收费约定详卷内委托代理通知书。'
     return ''
 
 
-def current_support(ref, fields):
+def current_support(ref, fields, source_manifest=None):
     original = ref
     if ref.get('method') == 'derived_form_draft':
         if ref.get('input_field') != FIELD or ref.get('input_value') != fields.get(FIELD):
@@ -115,11 +160,18 @@ def current_support(ref, fields):
                          and all(r.get(k) == ref.get(k) for k in
                                  ('source_path', 'page', 'quote', 'fee_terms', 'bound_fields'))
                          and reference_supported(FIELD, fields.get(FIELD), r, fields)), None)
-    return [] if original and reference_supported(FIELD, fields.get(FIELD), original, fields) else None
+    if not original or not reference_supported(FIELD, fields.get(FIELD), original, fields):
+        return None
+    if 'notice_visual_readback' in original or original.get('candidate_origin') == 'two_visual_fee_notice_reads':
+        from visual_fee_readback import current_reference_supported
+        if not current_reference_supported(original, source_manifest):
+            return None
+    return []
 
 
 def recall_fee(fields, provenance, conflicts, *, page_cache, allowed_sources,
-               manual_fields=(), method='visual_agent_local_evidence', fact_review):
+               manual_fields=(), method='visual_agent_local_evidence', fact_review,
+               visual_candidates=()):
     if method not in ('local_agent', 'visual_agent_local_evidence'):
         raise ValueError('unsupported_local_evidence_method')
     refs = provenance.get(FIELD) or []
@@ -136,6 +188,23 @@ def recall_fee(fields, provenance, conflicts, *, page_cache, allowed_sources,
         if row:
             found.append({**row, 'source_path': path, 'page': page, 'method': method,
                           'candidate_origin': 'local_cached_fee_notice'})
+    if method == 'visual_agent_local_evidence':
+        from visual_fee_readback import supported
+        for proof in visual_candidates:
+            if not isinstance(proof, dict) or not isinstance(proof.get('body'), dict):
+                continue
+            body = proof['body']
+            path, page, text, sha = (body.get(k) for k in
+                ('source_path', 'page', 'second_text', 'source_sha256'))
+            if (not isinstance(path, str) or type(page) is not int
+                    or (path, page) not in allowed_sources
+                    or not supported(proof, path=path, page=page, quote=text, source_sha256=sha)):
+                continue
+            row = candidate(text, fields)
+            if row:
+                found.append({**row, 'source_path': path, 'page': page, 'method': method,
+                    'source_sha256': sha, 'notice_visual_readback': deepcopy(proof),
+                    'candidate_origin': 'two_visual_fee_notice_reads'})
     if not found:
         return 0
     # Equal short summaries can conceal different risk rates or adjustments.

@@ -106,6 +106,14 @@ def verify_artifact_manifest(output_dir, required_files, *, expected_source_page
                     raise ValueError("质检单未记录页守恒通过")
                 if quality.get("source_pages") != expected_source_pages:
                     raise ValueError("质检单源页数与实际预期不一致")
+                if quality.get('source_page_locations_version') is not None:
+                    from .source_page_locations import VERSION, validate_locations
+                    if quality['source_page_locations_version'] != VERSION:
+                        raise ValueError('源页去向版本无法核验')
+                    validate_locations(quality.get('source_page_locations'),quality.get('sources'),
+                        quality.get('output_pages'),quality.get('pagination'))
+                    if len(quality['source_page_locations']) != expected_source_pages:
+                        raise ValueError('源页去向数量与本次上传材料不一致')
             elif key == "quality_html":
                 if "<html" not in path.read_text(encoding="utf-8").lower():
                     raise ValueError("质检HTML不可解析")
@@ -117,6 +125,11 @@ def verify_artifact_manifest(output_dir, required_files, *, expected_source_page
             actual[key] = (path, item)
         except (OSError, ValueError, TypeError, KeyError, RuntimeError, zipfile.BadZipFile, ElementTree.ParseError) as exc:
             errors.append(f"{key}：{exc}")
+    if isinstance(quality,dict) and quality.get('source_page_locations_version') is not None and 'archive_pdf' in actual:
+        if quality.get('output_pages') != actual['archive_pdf'][1].get('pages'):
+            errors.append('源页去向记录的成卷页数与实际PDF不一致')
+        if pagination is not None and quality.get('pagination') != pagination:
+            errors.append('源页去向记录的页码规则与本次成果不一致')
     if 'source_component_pdf:质量监督卡' in files:
         details=quality.get('derived_output') if isinstance(quality,dict) else {}
         details=details if isinstance(details,dict) else {}

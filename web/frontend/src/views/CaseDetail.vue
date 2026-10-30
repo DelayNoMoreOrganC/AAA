@@ -50,7 +50,7 @@ import { useAuthStore } from '../stores/auth'
 import { formatShanghaiTime,createRequestId } from '../domain/workflow.js'
 import { caseTaskSummary,caseTaskPresentation } from '../domain/taskExperience.js'
 import { caseTypeLabel, caseStageLabel } from '../domain/caseTypes.js'
-import { isCloudProcessing,processingLabel,materialConsentKey,resumeProcessingMode,taskNeedsCloudConsent } from '../domain/processingPrivacy.js'
+import { isCloudProcessing,processingLabel,materialConsentKey,resumeProcessingMode,taskNeedsCloudConsent,capturedFormPolicyToken,validateFormPolicyRefresh } from '../domain/processingPrivacy.js'
 import { useCloudConsent } from '../domain/useCloudConsent'
 import CloudProcessingConsent from '../components/CloudProcessingConsent.vue'
 import DeleteCaseButton from '../components/DeleteCaseButton.vue'
@@ -67,10 +67,10 @@ const readiness=ref<any>(null)
 const lastTask=ref<any>(null)
 const currentSummary=computed(()=>lastTask.value||caseTaskSummary(detail.value))
 const presentation=computed(()=>caseTaskPresentation(currentSummary.value))
-const openExistingTask=computed(()=>!!detail.value?.last_task_id&&!currentSummary.value?.source_changed)
+const openExistingTask=computed(()=>!!detail.value?.last_task_id&&!currentSummary.value?.source_changed&&!currentSummary.value?.form_policy_update?.available)
 const processingMode=computed(()=>lastTask.value?resumeProcessingMode(lastTask.value):readiness.value?.mode||'')
 const cloudConsentRequired=computed(()=>isCloudProcessing(processingMode.value)&&(!lastTask.value||taskNeedsCloudConsent(lastTask.value)))
-const {approved:cloudApproved,reset:resetCloudConsent,payload:cloudConsentPayload}=useCloudConsent(()=>processingMode.value,()=>caseId+materialConsentKey(detail.value?.files)+':'+(lastTask.value?.source_version||''))
+const {approved:cloudApproved,reset:resetCloudConsent,payload:cloudConsentPayload}=useCloudConsent(()=>processingMode.value,()=>caseId+materialConsentKey(detail.value?.files)+':'+(lastTask.value?.source_version||'')+':'+(lastTask.value?.form_policy_update?.token||''))
 let generateKey=''
 const {state:uploadState,queue:uploadQueue}=useUploadRecovery({client,getScope:()=>({caseId,accountScope:String(auth.user?.org_id||'')+':'+String(auth.user?.id||'')}),getCapabilities:()=>capabilities.value,onProgress:(done:number,total:number,name:string)=>{uploadIndex.value=done;uploadTotal.value=total;uploadingName.value=name}})
 const uploading=computed(()=>uploadState.value.busy)
@@ -96,7 +96,7 @@ async function dismissUpload(id:string){if(uploading.value||activeTask.value)ret
 async function onTypeChange(file:any){resetCloudConsent();try{await client.patch('/cases/'+caseId+'/files/'+file.id,{doc_type:file.doc_type});await load(true)}catch(e:any){ElMessage.error(e.response?.data?.detail||'分类保存失败');await load(true)}}
 async function onDeleteFile(file:any){try{await ElMessageBox.confirm('从案件中移除「'+file.filename+'」？','移除材料',{confirmButtonText:'移除',cancelButtonText:'保留',type:'warning'})}catch{return}resetCloudConsent();try{await client.delete('/cases/'+caseId+'/files/'+file.id);await load(true)}catch(e:any){ElMessage.error(e.response?.data?.detail||'移除失败')}}
 async function openOriginal(file:any){try{const {data}=await client.get('/cases/'+caseId+'/files/'+file.id+'/original',{responseType:'blob'});const url=URL.createObjectURL(data);const a=document.createElement('a');a.href=url;a.download=file.filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}catch{ElMessage.error('无法读取原件，请稍后重试')}}
-async function onGenerate(){if(generating.value||uploading.value||activeTask.value)return;if(uploadState.value.blocked){ElMessage.warning('请先完成或移除待导入项，并确认清单已读取');return};generating.value=true;try{if(!generateKey)generateKey=createRequestId();await load(true);if(pageError.value)throw new Error('未能核对最新材料，请重新加载后再开始。');if(!lastTask.value){await loadReadiness();if(!readiness.value?.ready)throw new Error('工作站处理组件尚未就绪，请联系管理员。')}const consent=lastTask.value&&!taskNeedsCloudConsent(lastTask.value)?{cloud_consent:false,expected_processing_mode:processingMode.value}:cloudConsentPayload();const {data}=lastTask.value?await client.post('/tasks/'+lastTask.value.id+'/resume',consent):await client.post('/cases/'+caseId+'/generate',{order_mode:orderMode.value,idempotency_key:generateKey,...consent});resetCloudConsent();goTask(data.id)}catch(e:any){ElMessage.error(e.response?.data?.detail||e.message||'归档任务未能启动，材料仍保留在案件中')}finally{generating.value=false}}
+async function onGenerate(){if(generating.value||uploading.value||activeTask.value)return;if(uploadState.value.blocked){ElMessage.warning('请先完成或移除待导入项，并确认清单已读取');return};generating.value=true;const selectedPolicy=capturedFormPolicyToken(lastTask.value);try{if(!generateKey)generateKey=createRequestId();await load(true);if(pageError.value)throw new Error('未能核对最新材料，请重新加载后再开始。');validateFormPolicyRefresh(selectedPolicy,lastTask.value);if(!lastTask.value){await loadReadiness();if(!readiness.value?.ready)throw new Error('工作站处理组件尚未就绪，请联系管理员。')}const consent=lastTask.value&&!taskNeedsCloudConsent(lastTask.value)?{cloud_consent:false,expected_processing_mode:processingMode.value}:cloudConsentPayload();const {data}=lastTask.value?await client.post('/tasks/'+lastTask.value.id+'/resume',{...consent,form_policy_token:selectedPolicy}):await client.post('/cases/'+caseId+'/generate',{order_mode:orderMode.value,idempotency_key:generateKey,...consent});resetCloudConsent();goTask(data.id)}catch(e:any){ElMessage.error(e.response?.data?.detail||e.message||'归档任务未能启动，材料仍保留在案件中')}finally{generating.value=false}}
 function goTask(id:number){router.push('/cases/'+caseId+'/tasks/'+id)}
 function performCaseAction(){if(openExistingTask.value)goTask(detail.value.last_task_id);else onGenerate()}
 function beforeUploadLeave(event:BeforeUnloadEvent){if(uploadState.value.navigationDirty){event.preventDefault();event.returnValue=''}}

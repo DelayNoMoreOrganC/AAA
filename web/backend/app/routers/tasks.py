@@ -325,7 +325,7 @@ async def _validate_done_artifacts(db, task):
     await db.commit()
 
 
-def _task_out(task, source_changed=False, issue_overrides=None):
+def _task_out(task, source_changed=False, issue_overrides=None, form_policy_update=None):
     from ..services.review_queue import build_review_queue
     from ..services.safe_errors import task_recovery_target
     from ..services.field_decisions import project_issues
@@ -365,8 +365,9 @@ def _task_out(task, source_changed=False, issue_overrides=None):
         review_queue=build_review_queue(task, projected_issues),
         rule_readiness=task.rule_readiness or {}, formal_ready=bool(task.status == TaskStatus.done and (task.rule_readiness or {}).get("formal_ready")),
         artifacts=(task.artifacts or {}).get("artifacts", []) if has_delivery(task) and (task.artifacts or {}).get("valid") else [],
-        can_resume=task.status == TaskStatus.failed or source_changed,
+        can_resume=task.status == TaskStatus.failed or source_changed or bool(form_policy_update),
         execution_profile=public_profile(task),
+        form_policy_update=form_policy_update,
     )
 
 
@@ -463,10 +464,37 @@ async def _generate_locked(body, case_id, user, db, *, inherited_task=None):
     if prior and frozen_mode(prior[0]) == selected_mode and prior[0].source_version == version and prior[0].phase == "artifacts_invalid":
         await _recover_field_snapshot(db, prior[0], user.org_id)
         return _task_out(prior[0])
+    from ..services.form_policy_repair import OPERATION as FORM_REPAIR_OPERATION
+    if (prior and prior[0].requested_operation == FORM_REPAIR_OPERATION
+            and frozen_mode(prior[0]) == selected_mode and prior[0].source_version == version
+            and prior[0].order_mode == body.order_mode and prior[0].status == TaskStatus.failed):
+        # Resume the original journal explicitly; never turn a failed bounded
+        # form repair into a new whole-volume recognition job on repeated start.
+        return _task_out(prior[0])
+    repair_parent = None
     if prior and frozen_mode(prior[0]) == selected_mode and prior[0].source_version == version and prior[0].order_mode == body.order_mode and prior[0].status != TaskStatus.failed:
         await _recover_field_snapshot(db, prior[0], user.org_id)
-        return _task_out(prior[0])
-    parent = next((task for task in prior if task.id == body.parent_task_id), None) if body.parent_task_id else next((task for task in prior if snapshot_exists(task, user.org_id)), None)
+        from ..services.form_policy_repair import load_repair_parent
+        try:
+            candidate = await asyncio.to_thread(load_repair_parent, prior[0], user.org_id,
+                case_type=case.case_type, stage=getattr(case, 'stage', '') or '')
+        except (OSError, ValueError, TypeError, KeyError, classification.ClassificationError):
+            raise HTTPException(409, "表单依据快照无法核验，请先恢复已保存的任务；未启动新的识别") from None
+        if candidate is None:
+            if body.form_policy_token:
+                raise HTTPException(409, "可更新的栏目已变化，请刷新后重新确认；未调用模型")
+            return _task_out(prior[0])
+        from ..services.form_policy_repair import public_repair_plan
+        plan = public_repair_plan(prior[0], candidate)
+        if body.form_policy_token != plan['token']:
+            raise HTTPException(409, "填写规则或内容已有更新，请刷新后确认本次栏目更新；未调用模型")
+        repair_parent = prior[0]
+        if body.parent_task_id and body.parent_task_id != repair_parent.id:
+            raise HTTPException(409, "请在最新任务上更新表单规则")
+        inherited_task = repair_parent  # Keep provider/model frozen; require new consent below.
+    parent = repair_parent or (next((task for task in prior if task.id == body.parent_task_id), None) if body.parent_task_id else next((task for task in prior if snapshot_exists(task, user.org_id)), None))
+    if body.form_policy_token and repair_parent is None:
+        raise HTTPException(409, "本次栏目更新已失效，请刷新后重新确认；未启动整卷识别")
     if body.parent_task_id and not parent:
         raise HTTPException(404, "parent task not found")
     if parent:
@@ -479,6 +507,14 @@ async def _generate_locked(body, case_id, user, db, *, inherited_task=None):
     except SafeTaskError as exc:
         raise HTTPException(409, public_error(exc)) from None
     from types import SimpleNamespace
+    from ..services.experience_binding import attach_snapshot
+    from ..services.experience_rules import ExperienceError
+    try:
+        profile = await attach_snapshot(db, user.id, case.id, user.org_id, profile, parent=parent)
+    except ExperienceError as exc:
+        raise HTTPException(409, str(exc)) from None
+    if repair_parent:
+        profile['_form_policy_plan'] = {'token':plan['token'],'fields':list(plan['fields'])}
     ready = await check_readiness(db, user.id, overrides=profile_overrides(SimpleNamespace(execution_profile=profile)))
     if not ready["ready"]:
         raise HTTPException(409, "；".join(ready["issues"]))
@@ -486,7 +522,7 @@ async def _generate_locked(body, case_id, user, db, *, inherited_task=None):
                        source_manifest=manifest, source_version=version, created_by=user.id,
                        execution_profile=profile,
                        parent_task_id=parent.id if parent else None, idempotency_key=body.idempotency_key,
-                       revision=1, phase="queued", requested_operation="analyze_and_draft",
+                       revision=1, phase="queued", requested_operation=FORM_REPAIR_OPERATION if repair_parent else "analyze_and_draft",
                        manual_fields=dict(parent.manual_fields or {}) if parent else {})
     db.add(task)
     # Serialize the final start decision against an upload registration made by
@@ -515,7 +551,23 @@ async def get_task(task_id: int, user=Depends(get_current_user), db=Depends(get_
             issues = enrich_classification_issues(issues, analysis.doc_spans, task.source_manifest)
         except (OSError, ValueError, KeyError, TypeError):
             pass
-    return _task_out(task, await _source_changed(db, task), issue_overrides=issues)
+    source_changed = await _source_changed(db, task)
+    plan = None
+    # Read-only availability projection: no reconciliation, source parsing,
+    # model request, task creation or output change is performed here.
+    if not source_changed and task.status in (TaskStatus.awaiting_review, TaskStatus.done) and task.phase != 'artifacts_invalid':
+        latest_id = await db.scalar(select(ArchiveTask.id).where(ArchiveTask.case_id == task.case_id).order_by(ArchiveTask.id.desc()).limit(1))
+        if latest_id == task.id:
+            from ..services.form_policy_repair import load_repair_parent, public_repair_plan
+            case = await db.get(Case, task.case_id)
+            try:
+                saved = await asyncio.to_thread(load_repair_parent, task, user.org_id,
+                    case_type=case.case_type, stage=getattr(case, 'stage', '') or '')
+                if saved is not None:
+                    plan = public_repair_plan(task, saved)
+            except (OSError, ValueError, TypeError, KeyError, SafeTaskError, classification.ClassificationError):
+                pass  # Unverified snapshots never offer a model action.
+    return _task_out(task, source_changed, issue_overrides=issues, form_policy_update=plan)
 
 
 @router.post("/api/tasks/{task_id}/resume", response_model=TaskOut)
@@ -537,11 +589,27 @@ async def resume(task_id: int, body: ResumeRequest | None = None, user=Depends(g
             return _task_out(task)
         await require_no_pending_uploads(db, task.case_id)
         if await _source_changed(db, task):
+            if body.form_policy_token:
+                raise HTTPException(409, "材料已有变化，请重新核对补件处理方式；未调用模型")
             return await _generate_locked(GenerateRequest(order_mode=task.order_mode, parent_task_id=task.id,
-                cloud_consent=body.cloud_consent, expected_processing_mode=body.expected_processing_mode), task.case_id, user, db, inherited_task=task)
+                cloud_consent=body.cloud_consent, expected_processing_mode=body.expected_processing_mode,
+                form_policy_token=body.form_policy_token), task.case_id, user, db, inherited_task=task)
         await _recover_field_snapshot(db, task, user.org_id)
         if task.status != TaskStatus.failed:
-            return _task_out(task)
+            latest_id = await db.scalar(select(ArchiveTask.id).where(ArchiveTask.case_id == task.case_id).order_by(ArchiveTask.id.desc()).limit(1))
+            if latest_id != task.id:
+                latest = await db.get(ArchiveTask, latest_id)
+                plan = (latest.execution_profile or {}).get('_form_policy_plan') or {}
+                if (body.form_policy_token and latest.parent_task_id == task.id
+                        and latest.source_version == task.source_version
+                        and frozen_mode(latest) == mode and plan.get('token') == body.form_policy_token):
+                    # A lost response is not a failed start. Return this exact
+                    # previously authorized child, even when it already finished.
+                    return _task_out(latest)
+                return _task_out(task)  # A historical resume cannot become a new repair.
+            return await _generate_locked(GenerateRequest(order_mode=task.order_mode, parent_task_id=task.id,
+                cloud_consent=body.cloud_consent, expected_processing_mode=body.expected_processing_mode,
+                form_policy_token=body.form_policy_token), task.case_id, user, db, inherited_task=task)
         if not task.created_by or not task.source_manifest:
             return await _generate_locked(GenerateRequest(order_mode=task.order_mode, parent_task_id=task.id,
                 cloud_consent=body.cloud_consent, expected_processing_mode=body.expected_processing_mode), task.case_id, user, db, inherited_task=task)
@@ -741,6 +809,8 @@ async def assemble(body: AssembleRequest, task_id: int, user=Depends(get_current
                              and sorted(confirmation.get("skipped") or []) == sorted(body.skipped))
         if task.status == TaskStatus.done and same_confirmation and await asyncio.to_thread(_completed_artifacts_unchanged, task):
             return _task_out(task)
+        if ((task.fields or {}).get('_request_budget_stop') or {}).get('status')=='incomplete':
+            raise HTTPException(409,'任务额度用尽，识别或填写仍未完成；草稿已保留，暂不能确认定稿。')
         if not get_settings().capabilities["archive_assembly"]:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "未找到可用的 PDF 生成器")
         if task_manager.is_running(task_id):

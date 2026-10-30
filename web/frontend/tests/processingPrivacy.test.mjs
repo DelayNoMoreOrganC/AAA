@@ -1,6 +1,30 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import { capturedFormPolicyToken,validateFormPolicyRefresh } from '../src/domain/processingPrivacy.js'
 import { createCloudConsent,glmKeyUpdate,isCloudProcessing,materialConsentKey,processingLabel,resumeProcessingMode,taskNeedsCloudConsent,taskProcessingLabel,secretKeyUpdate,processingSettingsPayload,cloudProviderName,cloudMaterialDescription,cloudPolicyUpdate } from '../src/domain/processingPrivacy.js'
+
+test('repair refresh preserves captured scope and rejects a different or newly appearing plan',()=>{
+  const old={form_policy_update:{available:true,token:'a'.repeat(64)}}
+  const selected=capturedFormPolicyToken(old)
+  assert.equal(validateFormPolicyRefresh(selected,old),selected)
+  assert.equal(validateFormPolicyRefresh(selected,{}),selected)
+  assert.equal(validateFormPolicyRefresh(undefined,{}),undefined)
+  assert.throws(()=>validateFormPolicyRefresh(selected,{form_policy_update:{token:'b'.repeat(64)}}),/填写规则已变化/)
+  assert.throws(()=>validateFormPolicyRefresh(undefined,old),/填写规则已变化/)
+})
+
+test('rule repair requires fresh cloud consent and a changed plan invalidates approval',()=>{
+  const task={source_version:'v1',execution_profile:{processing_mode:'deepseek_cloud',cloud_consent:true,authorized_source_version:'v1'}}
+  assert.equal(taskNeedsCloudConsent(task),false)
+  task.form_policy_update={available:true,token:'a'.repeat(64)}
+  assert.equal(taskNeedsCloudConsent(task),true)
+  assert.equal(taskNeedsCloudConsent({...task,execution_profile:{processing_mode:'ollama_local'}}),false)
+  const consent=createCloudConsent()
+  consent.update('deepseek_cloud','v1:'+task.form_policy_update.token);consent.approve(true)
+  assert.equal(consent.approved,true)
+  consent.update('deepseek_cloud','v1:'+'b'.repeat(64))
+  assert.equal(consent.approved,false)
+})
 
 test('loading a task does not label it as a historical task without a processing profile',()=>{
   assert.equal(taskProcessingLabel(null),'')

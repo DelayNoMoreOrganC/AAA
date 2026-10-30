@@ -88,6 +88,8 @@ def stabilize_templates(analysis, work_dir: str, log=print) -> Dict[str, str]:
 def save_snapshot(work_dir: str, analysis, *, base_name: str, order_mode: str = "catalog", skipped: Optional[List[int]] = None, processing_mode: Optional[str] = None, metadata: Optional[dict] = None) -> str:
     os.makedirs(work_dir, exist_ok=True)
     fields = dict(analysis.fields or {})
+    from ..core.v4_bridge import load
+    load('agent_trace').validate_trace_fields(fields)
     outcome_warnings = list(getattr(analysis, "outcome_warnings", None) or [])
     if outcome_warnings and "_outcome_warnings" not in fields:
         fields["_outcome_warnings"] = outcome_warnings
@@ -130,6 +132,8 @@ def load_analysis(work_dir: str):
     ArchiveAnalysis = archive_pipeline().ArchiveAnalysis
 
     data = load_snapshot_data(work_dir)
+    from ..core.v4_bridge import load
+    load('agent_trace').validate_trace_fields(data.get('fields') or {})
     doc_spans = [_unit_from_dict(d) for d in data.get("doc_spans", [])]
     analysis = ArchiveAnalysis(
         case_type=data["case_type"],
@@ -153,6 +157,8 @@ def update_snapshot_fields(work_dir: str, fields: dict, generated_templates: Opt
     merged = dict(data.get("fields") or {})
     merged.update(fields or {})
     data["fields"] = merged
+    from ..core.v4_bridge import load
+    load('agent_trace').validate_trace_fields(merged)
     if fields is not None and isinstance(fields.get("_outcome_warnings"), list):
         data["outcome_warnings"] = list(fields["_outcome_warnings"])
     if generated_templates is not None:

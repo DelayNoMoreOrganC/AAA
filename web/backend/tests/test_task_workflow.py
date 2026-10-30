@@ -149,7 +149,7 @@ def test_evidence_only_increment_uses_real_agent_empty_result_and_preserves_manu
     old = {"file_id":"old", "path":old_path, "sha256":"old", "doc_type":"default", "pages":1, "filename":"old.pdf"}
     new = {"file_id":"new", "path":new_path, "sha256":"new", "doc_type":"evidence", "pages":1, "filename":"evidence.pdf"}
     parent = SimpleNamespace(id=1, case_id="fixture", source_manifest=[old], manual_fields={"合同号":"人工保留-001"})
-    task = SimpleNamespace(source_manifest=[old,new])
+    task = SimpleNamespace(case_id="fixture", source_manifest=[old,new])
     previous = fixture_analysis(old_path, {"合同号":"人工保留-001", "委托人":"虚构委托人"})
     previous.fields["_agent_summary"] = {"pages_checked":1, "source_pages_checked":1, "accepted_fact_count":2,
                                           "rejected_fact_count":0, "empty_fact_pages":[], "local":True}
@@ -250,6 +250,25 @@ async def test_changed_classification_rejects_previous_final_approval(upload_con
     assert response.status_code == 409
     assert "材料或分类" in response.json()["detail"]
     assert capture_start == []
+
+
+@pytest.mark.asyncio
+async def test_budget_incomplete_cannot_be_finalized_even_when_warning_acknowledged(upload_context,monkeypatch,capture_start):
+    ctx=upload_context;wire_storage(ctx,monkeypatch);await upload(ctx)
+    stopped={'status':'incomplete','phase':'classification','unclassified_pages':[], 'material_absence_proven':False}
+    analysis=fixture_analysis('',{'_request_budget_stop':stopped})
+    issues=analysis_issues(analysis,[])
+    budget_issue=next(row for row in issues if row['kind']=='processing_budget')
+    assert not any(row['kind']=='empty_fields' for row in issues)
+    fields={**analysis.fields,'_issue_decisions':{budget_issue['id']:{'action':'acknowledged','reason':'read'}}}
+    assert budget_issue in unresolved_issues(issues,fields)
+    async with ctx.sessions() as db:
+        files=(await db.scalars(select(CaseFile))).all();manifest=build_source_manifest(files)
+        task=ArchiveTask(case_id='case-a',status=TaskStatus.awaiting_review,fields=fields,issues=[],revision=1,
+            catalog_status=[],source_manifest=manifest,source_version=source_version(manifest,'civil'))
+        db.add(task);await db.commit();task_id=task.id
+    response=await ctx.client.post(f'/api/tasks/{task_id}/assemble',json={'confirmation':True,'confirmed_revision':1,'skipped':[]})
+    assert response.status_code==409 and '额度用尽' in response.json()['detail'] and not capture_start
 
 
 @pytest.mark.asyncio
@@ -414,7 +433,7 @@ def test_supplement_reuses_only_safe_materials_and_keeps_manual_value(tmp_path, 
     old = {"file_id": "old", "path": old_path, "sha256": "old-hash", "doc_type": "default", "pages": 1, "filename": "old.pdf"}
     new = {"file_id": "new", "path": new_path, "sha256": "new-hash", "doc_type": "default", "pages": 1, "filename": "new.pdf"}
     parent = SimpleNamespace(id=1, case_id="fixture", source_manifest=[old], manual_fields={"承办律师": "人工律师"})
-    task = SimpleNamespace(source_manifest=[old, new])
+    task = SimpleNamespace(case_id="fixture", source_manifest=[old, new])
     analysis = fixture_analysis(old_path, {"承办律师": "原提取律师"})
     analysis.case_type = case_type
     analysis.fields.update(_agent_summary={"pages_checked": 1, "tools": ["read_pages"], "local": True},
